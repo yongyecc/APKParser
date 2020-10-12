@@ -1,0 +1,121 @@
+#pragma once
+
+#include <vector>
+
+using namespace std;
+
+class parser
+{
+	
+public:
+	void init(const char* fp);
+
+	//DEX Header
+	struct dex_header
+	{
+		char blk1[0x34];
+
+		uint32_t map_off;
+
+		uint32_t string_ids_size;
+		uint32_t string_ids_off;
+
+		uint32_t type_ids_size;
+		uint32_t type_ids_off;
+
+		uint32_t proto_ids_size;
+		uint32_t proto_ids_off;
+
+		uint32_t field_ids_size;
+		uint32_t field_ids_off;
+
+		uint32_t method_ids_size;
+		uint32_t method_ids_off;
+
+		char blk3[0x10];
+	};
+
+
+	//DEX STRINGS节区
+	struct string_data
+	{
+		vector<char> utf16_size;
+		vector<char> data;
+	};
+
+	struct dex_string_ids
+	{
+		uint32_t string_data_off;
+		string_data str_data;
+	};
+
+
+	//DEX TYPE节区
+	struct dex_type_ids
+	{
+		uint32_t descriptor_idx;
+	};
+
+
+	//DEX PROTO节区
+	struct dex_proto_ids
+	{
+		uint32_t shorty_idx;
+		uint32_t return_type_idx;
+		uint32_t parameters_off;
+	};
+
+
+	//DEX FIELDS节区
+	struct dex_field_ids
+	{
+		uint16_t class_idx;
+		uint16_t type_idx;
+		uint16_t name_idx;
+	};
+
+
+	// DEX METHOD节区
+	struct dex_method_ids
+	{
+		uint16_t class_idx;
+		uint16_t proto_idx;
+		uint32_t name_idx;
+	};
+
+
+	//DEX CLASS节区
+	struct dex_class_defs
+	{
+		char cls_data[0x20];
+	};
+
+
+	//DEX MAP节区
+	struct name_item_list
+	{
+		uint16_t type;
+		uint16_t unused;
+		uint32_t size;
+		uint32_t offset;
+	};
+
+	struct dex_map_list
+	{
+		uint32_t size;
+		vector<name_item_list> map_item;
+	};
+
+
+	struct dex_file
+	{
+		dex_header* header;
+		vector<dex_string_ids> string_ids();
+		vector<dex_type_ids> type_ids();
+		vector<dex_proto_ids> proto_ids();
+		vector<dex_field_ids> field_ids();
+		vector<dex_method_ids> method_ids();
+		vector<dex_class_defs> class_defs();
+		vector<dex_map_list> map_list();
+	};
+};
