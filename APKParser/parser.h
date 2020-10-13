@@ -7,9 +7,9 @@ using namespace std;
 class parser
 {
 	
-public:
-	void init(const char* fp);
 
+
+public:
 	//DEX Header
 	struct dex_header
 	{
@@ -46,7 +46,7 @@ public:
 	struct dex_string_ids
 	{
 		uint32_t string_data_off;
-		string_data str_data;
+		//string_data str_data;
 	};
 
 
@@ -110,12 +110,22 @@ public:
 	struct dex_file
 	{
 		dex_header* header;
-		vector<dex_string_ids> string_ids();
-		vector<dex_type_ids> type_ids();
-		vector<dex_proto_ids> proto_ids();
-		vector<dex_field_ids> field_ids();
-		vector<dex_method_ids> method_ids();
-		vector<dex_class_defs> class_defs();
-		vector<dex_map_list> map_list();
+		vector<dex_string_ids> string_ids;
+		vector<dex_type_ids> type_ids;
+		vector<dex_proto_ids> proto_ids;
+		vector<dex_field_ids> field_ids;
+		vector<dex_method_ids> method_ids;
+		vector<dex_class_defs> class_defs;
+		vector<dex_map_list> map_list;
 	};
+
+public:
+	dex_file* fdex;
+	parser(const char* fp);
+	vector<uint8_t*> string_list;
+	vector<dex_method_ids> method_list;
+	vector<dex_type_ids> type_list;
+	char* get_string_by_id(uint32_t idx);
+	parser::dex_method_ids get_method_by_id(uint16_t idx);
+
 };
