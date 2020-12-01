@@ -13,8 +13,20 @@ public:
 	//DEX Header
 	struct dex_header
 	{
-		char blk1[0x34];
-
+		struct dex_magic
+		{
+			char dex[3];
+			char newline;
+			char ver[3];
+			char zero;
+		};
+		uint32_t checksum;
+		char signature[20];
+		uint32_t file_size;
+		uint32_t header_size;
+		uint32_t endian_tag;
+		uint32_t link_size;
+		uint32_t link_off;
 		uint32_t map_off;
 
 		uint32_t string_ids_size;
@@ -32,7 +44,11 @@ public:
 		uint32_t method_ids_size;
 		uint32_t method_ids_off;
 
-		char blk3[0x10];
+		uint32_t class_ids_size;
+		uint32_t class_id_off;
+
+		uint32_t data_size;
+		uint32_t data_off;
 	};
 
 
@@ -87,6 +103,14 @@ public:
 	//DEX CLASS½ÚÇø
 	struct dex_class_defs
 	{
+		uint32_t class_idx;
+		uint32_t access_flag;
+		uint32_t superclass_idx;
+		uint32_t interfaces_off;
+		uint32_t source_file_idx;
+		uint32_t annotations_off;
+		uint32_t class_data_off;
+		
 		char cls_data[0x20];
 	};
 
@@ -125,6 +149,7 @@ public:
 	vector<uint8_t*> string_list;
 	vector<dex_method_ids> method_list;
 	vector<dex_type_ids> type_list;
+
 	char* get_string_by_id(uint32_t idx);
 	parser::dex_method_ids get_method_by_id(uint16_t idx);
 

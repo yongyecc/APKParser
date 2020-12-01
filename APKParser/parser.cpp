@@ -106,7 +106,7 @@ void printUnsignedLebValue(
 
 parser::parser(const char* apk_fpath)
 {
-	FILE* fp = fopen(apk_fpath, "r");
+	FILE* fp = fopen(apk_fpath, "rb");
 	fseek(fp, 0, SEEK_END);
 	size_t file_size = ftell(fp);
 	fseek(fp, 0, SEEK_SET);
@@ -141,12 +141,15 @@ parser::parser(const char* apk_fpath)
 	uint8_t* p = NULL;
 	for (size_t i = 0; i < string_size; i++)
 	{
-		
+		if (i == 134) {
+			printf("");
+		}
 		int n =  uleb128_value((uint8_t*)buff+string_id_list[i].string_data_off);
 		int n2 = len_uleb128(n);
 
 		fseek(fp, string_id_list[i].string_data_off+n2, SEEK_SET);
 		p = (uint8_t*)malloc(n + 1);
+
 		fread(p, 1, n, fp);
 		p[n] = '\0';
 		parser::string_list.push_back(p);
@@ -183,6 +186,9 @@ parser::parser(const char* apk_fpath)
 	{
 		parser::method_list.push_back(method_id_list[i]);
 	}
+
+	// INIT DEX CLASSES
+	uint32_t class_size = dex->header
 
 	parser::fdex = dex;
 	return;
