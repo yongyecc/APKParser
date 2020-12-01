@@ -141,9 +141,6 @@ parser::parser(const char* apk_fpath)
 	uint8_t* p = NULL;
 	for (size_t i = 0; i < string_size; i++)
 	{
-		if (i == 134) {
-			printf("");
-		}
 		int n =  uleb128_value((uint8_t*)buff+string_id_list[i].string_data_off);
 		int n2 = len_uleb128(n);
 
@@ -188,7 +185,159 @@ parser::parser(const char* apk_fpath)
 	}
 
 	// INIT DEX CLASSES
-	uint32_t class_size = dex->header
+	uint32_t class_size = dex->header->class_ids_size;
+	uint32_t class_off = dex->header->class_id_off;
+
+	for (size_t i = 0; i < class_size; i++)
+	{
+		dex_class_data class_data_it = {0};
+		//dex_class_def
+		memcpy(&class_data_it.class_def, buff + class_off + i*sizeof(dex_class_def), sizeof(dex_class_def));
+		
+		//static_fields_size¡¢instance_fields_size¡¢direct_methods_size¡¢virtual_methods_size
+		uint32_t off = 0;
+		uint32_t v = 0;
+		uint32_t n = 0;
+		for (size_t k = 0; k < 4; k++)
+		{
+			v = uleb128_value((uint8_t*)buff + class_data_it.class_def.class_data_off + off);
+			n = len_uleb128(v);
+			switch (k)
+			{
+			case 0:
+				class_data_it.class_data.static_fields_size = v;
+				break;
+			case 1:
+				class_data_it.class_data.instance_fields_size = v;
+				break;
+			case 2:
+				class_data_it.class_data.direct_methods_size = v;
+				break;
+			case 3:
+				class_data_it.class_data.virtual_methods_size = v;
+				break;
+			default:
+				printf("ERROR");
+				exit(0);
+			}
+			off += n;
+		}
+		//static_fields_list
+		for (size_t j = 0; j < class_data_it.class_data.static_fields_size; j++)
+		{
+			encoded_field static_field;
+			for (size_t k = 0; k < 2; k++)
+			{
+				v = uleb128_value((uint8_t*)buff + class_data_it.class_def.class_data_off + off);
+				n = len_uleb128(v);
+				switch (k)
+				{
+				case 0:
+					static_field.field_idx = v;
+					break;
+				case 1:
+					static_field.access_flags = v;
+					break;
+				default:
+					printf("ERROR");
+					exit(0);;
+				}
+				off += n;
+			}
+
+			class_data_it.class_data.static_fields_list.push_back(static_field);
+		}
+		//instance_fields_list
+		for (size_t j = 0; j < class_data_it.class_data.instance_fields_size; j++)
+		{
+			encoded_field field = { 0 };
+			for (size_t k = 0; k < 2; k++)
+			{
+				v = uleb128_value((uint8_t*)buff + class_data_it.class_def.class_data_off + off);
+				n = len_uleb128(v);
+				switch (k)
+				{
+				case 0:
+					field.field_idx = v;
+					break;
+				case 1:
+					field.access_flags = v;
+					break;
+				default:
+					printf("ERROR");
+					exit(0);;
+				}
+				off += n;
+			}
+			
+			class_data_it.class_data.instance_fields_list.push_back(field);
+		}
+		//direct_method
+		for (size_t j = 0; j < class_data_it.class_data.direct_methods_size; j++)
+		{
+			encoded_method direct_method = { 0 };
+			for (size_t k = 0; k < 3; k++)
+			{
+				v = uleb128_value((uint8_t*)buff + class_data_it.class_def.class_data_off + off);
+				n = len_uleb128(v);
+				switch (k)
+				{
+				case 0:
+					direct_method.method_idx = v;
+					break;
+				case 1:
+					direct_method.access_flags = v;
+					break;
+				case 2:
+					direct_method.code_off = v;
+					break;
+				default:
+					break;
+				}
+				off += n;
+			}
+			//code_item
+			memcpy(&direct_method.code, buff + direct_method.code_off, 0x10);
+			char* ins = (char*)malloc(direct_method.code.insns_size * 2);
+			memcpy(ins, buff + direct_method.code_off + 0x10, direct_method.code.insns_size * 2);
+			direct_method.code.insns = ins;
+			class_data_it.class_data.directmethods_list.push_back(direct_method);
+		}
+		//virtual_method
+		for (size_t j = 0; j < class_data_it.class_data.virtual_methods_size; j++)
+		{
+			encoded_method virtual_method = {0};
+			for (size_t k = 0; k < 3; k++)
+			{
+				v = uleb128_value((uint8_t*)buff + class_data_it.class_def.class_data_off + off);
+				n = len_uleb128(v);
+				switch (k)
+				{
+				case 0:
+					virtual_method.method_idx = v;
+					break;
+				case 1:
+					virtual_method.access_flags = v;
+					break;
+				case 2:
+					virtual_method.code_off = v;
+					break;
+				default:
+					break;
+				}
+				off += n;
+			}
+			//code_item
+			virtual_method.code = { 0 };
+			memcpy(&virtual_method.code, buff + virtual_method.code_off, 0x10);
+			char* ins = (char*)malloc(virtual_method.code.insns_size * 2);
+			memcpy(ins, buff + virtual_method.code_off + 0x10, virtual_method.code.insns_size * 2);
+			virtual_method.code.insns = ins;
+			class_data_it.class_data.virtualmethods_list.push_back(virtual_method);
+		}
+		parser::class_data_list.push_back(class_data_it);
+	}
+
 
 	parser::fdex = dex;
 	return;

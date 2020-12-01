@@ -11,15 +11,17 @@ class parser
 
 public:
 	//DEX Header
+	struct dex_magic
+	{
+		char dex[3];
+		char newline;
+		char ver[3];
+		char zero;
+	};
+
 	struct dex_header
 	{
-		struct dex_magic
-		{
-			char dex[3];
-			char newline;
-			char ver[3];
-			char zero;
-		};
+		dex_magic magic;
 		uint32_t checksum;
 		char signature[20];
 		uint32_t file_size;
@@ -101,7 +103,44 @@ public:
 
 
 	//DEX CLASS½ÚÇø
-	struct dex_class_defs
+	struct encoded_field
+	{
+		uint32_t field_idx;
+		uint32_t access_flags;
+	};
+
+	struct code_item
+	{
+		uint16_t registers_size;
+		uint16_t ins_size;
+		uint16_t outs_size;
+		uint16_t tries_size;
+		uint32_t debug_info_off;
+		uint32_t insns_size;
+		char* insns;
+	};
+
+	struct  encoded_method
+	{
+		uint32_t method_idx;
+		uint32_t access_flags;
+		uint32_t code_off;
+		code_item code;
+	};
+
+	struct class_data_item
+	{
+		uint32_t static_fields_size;
+		uint32_t instance_fields_size;
+		uint32_t direct_methods_size;
+		uint32_t virtual_methods_size;
+		vector<encoded_field> instance_fields_list;
+		vector<encoded_field> static_fields_list;
+		vector<encoded_method> directmethods_list;
+		vector<encoded_method> virtualmethods_list;
+	};
+
+	struct dex_class_def
 	{
 		uint32_t class_idx;
 		uint32_t access_flag;
@@ -110,8 +149,13 @@ public:
 		uint32_t source_file_idx;
 		uint32_t annotations_off;
 		uint32_t class_data_off;
-		
-		char cls_data[0x20];
+		uint32_t static_values_off;
+	};
+
+	struct dex_class_data
+	{
+		dex_class_def class_def;
+		class_data_item class_data;
 	};
 
 
@@ -139,7 +183,7 @@ public:
 		vector<dex_proto_ids> proto_ids;
 		vector<dex_field_ids> field_ids;
 		vector<dex_method_ids> method_ids;
-		vector<dex_class_defs> class_defs;
+		vector<dex_class_def> class_defs;
 		vector<dex_map_list> map_list;
 	};
 
@@ -149,7 +193,8 @@ public:
 	vector<uint8_t*> string_list;
 	vector<dex_method_ids> method_list;
 	vector<dex_type_ids> type_list;
-
+	vector<dex_class_def> class_def_list;
+	vector<dex_class_data> class_data_list;
 	char* get_string_by_id(uint32_t idx);
 	parser::dex_method_ids get_method_by_id(uint16_t idx);
 
