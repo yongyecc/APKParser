@@ -63,6 +63,18 @@ int uleb128_value(uint8_t* pStream)
 	return result;
 }
 
+char* parser::get_string_by_id(uint32_t idx)
+{
+	char* p = NULL;
+	p = (char*)parser::string_list[idx];
+	return p;
+}
+
+parser::dex_method_ids parser::get_method_by_id(uint16_t idx)
+{
+	return parser::method_list[idx];
+}
+
 size_t len_uleb128(unsigned long n)
 {
 	static unsigned char b[32];
@@ -297,6 +309,9 @@ parser::parser(const char* apk_fpath)
 				off += n;
 			}
 			//code_item
+			if (direct_method.code_off == 0) {
+				continue;
+			}
 			memcpy(&direct_method.code, buff + direct_method.code_off, 0x10);
 			char* ins = (char*)malloc(direct_method.code.insns_size * 2);
 			memcpy(ins, buff + direct_method.code_off + 0x10, direct_method.code.insns_size * 2);
@@ -328,6 +343,9 @@ parser::parser(const char* apk_fpath)
 				off += n;
 			}
 			//code_item
+			if (virtual_method.code_off == 0) {
+				continue;
+			}
 			virtual_method.code = { 0 };
 			memcpy(&virtual_method.code, buff + virtual_method.code_off, 0x10);
 			char* ins = (char*)malloc(virtual_method.code.insns_size * 2);
@@ -335,6 +353,10 @@ parser::parser(const char* apk_fpath)
 			virtual_method.code.insns = ins;
 			class_data_it.class_data.virtualmethods_list.push_back(virtual_method);
 		}
+		//if(i==109){
+		//	printf("%d -> compeleted\n", i);
+		//}
+		printf("%d -> compeleted\n", i);
 		parser::class_data_list.push_back(class_data_it);
 	}
 
@@ -345,15 +367,5 @@ parser::parser(const char* apk_fpath)
 
 
 
-char* parser::get_string_by_id(uint32_t idx) 
-{
-	char* p = NULL;
-	p = (char*)parser::string_list[idx];
-	return p;
-}
 
-parser::dex_method_ids parser::get_method_by_id(uint16_t idx)
-{
-	return parser::method_list[idx];
-}
 

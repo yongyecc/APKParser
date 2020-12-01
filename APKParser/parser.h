@@ -193,7 +193,6 @@ public:
 	vector<uint8_t*> string_list;
 	vector<dex_method_ids> method_list;
 	vector<dex_type_ids> type_list;
-	vector<dex_class_def> class_def_list;
 	vector<dex_class_data> class_data_list;
 	char* get_string_by_id(uint32_t idx);
 	parser::dex_method_ids get_method_by_id(uint16_t idx);
