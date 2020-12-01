@@ -19,10 +19,14 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Crc32.h" />
+    <ClInclude Include="md5.h" />
     <ClInclude Include="parser.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Crc32.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="md5.cpp" />
     <ClCompile Include="parser.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
@@ -123,6 +127,7 @@
       <SDLCheck>false</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <CompileAsWinRT>false</CompileAsWinRT>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

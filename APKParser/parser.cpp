@@ -202,9 +202,14 @@ parser::parser(const char* apk_fpath)
 
 	for (size_t i = 0; i < class_size; i++)
 	{
-		dex_class_data class_data_it = {0};
+		dex_class_data class_data_it = { 0 };
 		//dex_class_def
 		memcpy(&class_data_it.class_def, buff + class_off + i*sizeof(dex_class_def), sizeof(dex_class_def));
+
+		if (class_data_it.class_def.class_data_off == 0) {
+			parser::class_data_list.push_back(class_data_it);
+			continue;
+		}
 		
 		//static_fields_size¡¢instance_fields_size¡¢direct_methods_size¡¢virtual_methods_size
 		uint32_t off = 0;
@@ -309,13 +314,12 @@ parser::parser(const char* apk_fpath)
 				off += n;
 			}
 			//code_item
-			if (direct_method.code_off == 0) {
-				continue;
+			if (direct_method.code_off != 0) {
+				memcpy(&direct_method.code, buff + direct_method.code_off, 0x10);
+				char* ins = (char*)malloc(direct_method.code.insns_size * 2);
+				memcpy(ins, buff + direct_method.code_off + 0x10, direct_method.code.insns_size * 2);
+				direct_method.code.insns = ins;
 			}
-			memcpy(&direct_method.code, buff + direct_method.code_off, 0x10);
-			char* ins = (char*)malloc(direct_method.code.insns_size * 2);
-			memcpy(ins, buff + direct_method.code_off + 0x10, direct_method.code.insns_size * 2);
-			direct_method.code.insns = ins;
 			class_data_it.class_data.directmethods_list.push_back(direct_method);
 		}
 		//virtual_method
@@ -343,26 +347,31 @@ parser::parser(const char* apk_fpath)
 				off += n;
 			}
 			//code_item
-			if (virtual_method.code_off == 0) {
-				continue;
+			if (virtual_method.code_off != 0) {
+				virtual_method.code = { 0 };
+				memcpy(&virtual_method.code, buff + virtual_method.code_off, 0x10);
+				char* ins = (char*)malloc(virtual_method.code.insns_size * 2);
+				memcpy(ins, buff + virtual_method.code_off + 0x10, virtual_method.code.insns_size * 2);
+				virtual_method.code.insns = ins;
 			}
-			virtual_method.code = { 0 };
-			memcpy(&virtual_method.code, buff + virtual_method.code_off, 0x10);
-			char* ins = (char*)malloc(virtual_method.code.insns_size * 2);
-			memcpy(ins, buff + virtual_method.code_off + 0x10, virtual_method.code.insns_size * 2);
-			virtual_method.code.insns = ins;
 			class_data_it.class_data.virtualmethods_list.push_back(virtual_method);
 		}
-		//if(i==109){
+		//if(i==8){
 		//	printf("%d -> compeleted\n", i);
 		//}
-		printf("%d -> compeleted\n", i);
+		//printf("%d -> compeleted\n", i);
 		parser::class_data_list.push_back(class_data_it);
 	}
 
 
 	parser::fdex = dex;
 	return;
+}
+
+char* parser::get_classname_by_id(uint32_t idx) {
+	 parser::dex_class_data class_data = parser::class_data_list[idx];
+	 char* class_name = parser::get_string_by_id(parser::type_list[class_data.class_def.class_idx].descriptor_idx);
+	return class_name;
 }
 
 

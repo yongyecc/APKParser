@@ -196,5 +196,5 @@ public:
 	vector<dex_class_data> class_data_list;
 	char* get_string_by_id(uint32_t idx);
 	parser::dex_method_ids get_method_by_id(uint16_t idx);
-
+	char* get_classname_by_id(uint32_t idx);
 };
