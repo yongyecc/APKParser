@@ -65,9 +65,18 @@ int uleb128_value(uint8_t* pStream)
 
 char* parser::get_string_by_id(uint32_t idx)
 {
-	char* p = NULL;
-	p = (char*)parser::string_list[idx];
-	return p;
+	try
+	{
+		char* p = NULL;
+		p = (char*)parser::string_list[idx];
+		return p;
+	}
+	catch (const std::exception&)
+	{
+		cerr << "string index out of string list." << endl;
+		exit(-1);
+	}
+	
 }
 
 parser::dex_method_ids parser::get_method_by_id(uint16_t idx)
@@ -153,14 +162,25 @@ parser::parser(const char* apk_fpath)
 	uint8_t* p = NULL;
 	for (size_t i = 0; i < string_size; i++)
 	{
+		//当出现中文等字符这个数量单位就不准确了
 		int n =  uleb128_value((uint8_t*)buff+string_id_list[i].string_data_off);
+		if (i == 28252) {
+			printf("");
+		}
 		int n2 = len_uleb128(n);
+		char* ptr = (char*)(buff + string_id_list[i].string_data_off + n2);
+		uint32_t strSize = 0;
+		while (strncmp(ptr, "", 1))
+		{
+			strSize += 1;
+			ptr++;
+		}
 
 		fseek(fp, string_id_list[i].string_data_off+n2, SEEK_SET);
-		p = (uint8_t*)malloc(n + 1);
+		p = (uint8_t*)malloc(strSize + 1);
 
-		fread(p, 1, n, fp);
-		p[n] = '\0';
+		fread(p, 1, strSize, fp);
+		p[strSize] = '\0';
 		parser::string_list.push_back(p);
 	}
 
