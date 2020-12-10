@@ -1377,6 +1377,9 @@ void printOpSimiValue(parser apk_parser, char* opBitSize)
     uint32_t class_size = apk_parser.class_data_list.size();
     for (size_t i = 0; i < class_size; i++)
     {
+        ops.clear();
+        featureBlckLen = 0;
+
         if (apk_parser.class_data_list[i].class_data.virtual_methods_size != 0 ||
             apk_parser.class_data_list[i].class_data.direct_methods_size != 0) {
             //travel direct_methods
@@ -1482,8 +1485,8 @@ int main()
 {
 	
 	
-	const char* fp = "d:\\Tools\\Company\\OWL-Android\\samples\\classes.dex";
-    //const char* fp = "d:\\Android\\sample\\classes.dex";
+	//const char* fp = "d:\\Tools\\Company\\OWL-Android\\samples\\classes.dex";
+    const char* fp = "d:\\Android\\sample\\classes.dex";
     parser apk_parser(fp);
 
     uint8_t opcode[] = {
