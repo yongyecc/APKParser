@@ -9,8 +9,10 @@ struct oneOpcode
 {
     char* stringAddr;
     uint8_t opcode;
-    uint32_t stringSize;
 };
+
+uint32_t featureBlckLen = 0;
+vector<uint8_t> ops;
 
 vector<oneOpcode> func_30B(uint16_t* a1, int a2, parser dex_parser)
 {
@@ -26,15 +28,15 @@ vector<oneOpcode> func_30B(uint16_t* a1, int a2, parser dex_parser)
 
     char* ret = NULL;
     uint32_t feature_size = 0;
-    vector<uint8_t> ops;
+    
     vector<uint8_t> only_op;
+    uint32_t string_number=0;
 
     v7 = a1;        
     v9 = 0;
     uint32_t opcode_number = 0;
     uint32_t str_size = 0;
-    uint32_t string_number = 0;
-
+    
     //一个类方法中堆块4的数量，有类方法中独立块MD5计算引用
     uint32_t heap4Size = 0;
 
@@ -116,7 +118,6 @@ LABEL_228:
             }
 
         }
-        oneOP.stringSize = string_number;
         allOpcode.push_back(oneOP);
         
         if ((v5 == 0x300 || v5 == 0x200 || v5 == 0x100) && v9)// 0x300：数组
@@ -867,7 +868,8 @@ LABEL_228:
         }
         printf("%x ", ops[i]);
     }*/
-    printf("[*] Opcode Similarity feature number(字符串总长度 + 2*字符串条数 + 提取的操作码数量) = 0x%x\n\n", 2 * string_number + str_size + opcode_number);
+    featureBlckLen = 2 * string_number + str_size + opcode_number;
+    printf("[*] Opcode Similarity feature number(字符串总长度 + 2*字符串条数 + 提取的操作码数量) = 0x%x\n\n", featureBlckLen);
     for (size_t i = 0; i < (2*string_number + str_size + opcode_number); i++)
     {
         if (i != 0 && i % 16 == 0)
@@ -1041,12 +1043,61 @@ LABEL_228:
 /// <param name="opBitSize">安天检出病毒的HASH值。</param>
 void opstrToSimiValue(vector<oneOpcode> allOpcode, char* opBitSize)
 {
+
+    vector<vector<uint8_t>> allOpcodeList;
     //opcode+str 转成 MD5列表
     uint32_t cursor = 0;
+    
+    //func_440 解析字节码，构造opcode+str的特征块
+    char* featureBlckPtr = (char*)malloc(featureBlckLen);
+    for (size_t i = 0; i < featureBlckLen; i++)
+    {
+        featureBlckPtr[i] = ops[i];
+    }
+
+    struct oneOpcodeBlck
+    {
+        char* opcodeBlckPtr;
+        uint32_t opSize;
+    };
     uint32_t id = 0;
     map<uint32_t, vector<uint8_t>> orgin_data;
+    vector<oneOpcodeBlck> allOpBlk;
+    char* s;
+    uint32_t sLen = 0;
+    uint32_t otherOpSize = 0;
+    char* v3 = featureBlckPtr;
+    for (size_t i = 0; i < allOpcode.size(); i++)
+    {
+        s = allOpcode[i].stringAddr;
+        if (s)
+        {
+            sLen = strlen(s) + 3;
+        }    
+        else
+        {
+            sLen = 1;
+        }
+        otherOpSize += sLen;
+        if (sLen > 1) 
+        {
+            oneOpcodeBlck one = {0};
+            one.opcodeBlckPtr = v3;
+            one.opSize = otherOpSize;
+            v3 += otherOpSize;
+            otherOpSize = 0;
+            allOpBlk.push_back(one);
+        }
+    }
+    if (otherOpSize)
+    {
+        oneOpcodeBlck one = { 0 };
+        one.opcodeBlckPtr = v3;
+        one.opSize = otherOpSize;
+        allOpBlk.push_back(one);
+    }
 
-    while (cursor < opcodeAndStr.size())
+  /*  while (cursor < opcodeAndStr.size())
     {
         if (opcodeAndStr[cursor] == 0x1a)
         {
@@ -1094,53 +1145,54 @@ void opstrToSimiValue(vector<oneOpcode> allOpcode, char* opBitSize)
             orgin_data[id].push_back(opcodeAndStr[cursor]);
             cursor++;
         }
-    }
+    }*/
     map<uint32_t, uint8_t> size_map;
     for (size_t l = 0; l < orgin_data.size(); l++)
     {
         size_map[l] = orgin_data[l].size();
     }
 
-    map<uint32_t, vector<uint8_t>> un_md5_data;
-    map<uint32_t, uint32_t> unMD5DataSizeMap;
-    cursor = 0;
-    for (size_t k = 0; k < orgin_data.size(); k++)
-    {
-        if (orgin_data[k].size() == 1 && orgin_data[k][0] == 0x1a)
-        {
-            for (size_t cId = 0; cId < 3; cId++)
-            {
-                un_md5_data[k].push_back(opcodeAndStr[cursor + cId]);
-            }
-            unMD5DataSizeMap[k] = 3;
-            cursor += 3;
-        }
-        else
-        {
-            uint32_t s_len = size_map[k];
-            for (size_t cId = 0; cId < s_len; cId++)
-            {
-                if (cursor + cId >= opcodeAndStr.size())
-                {
-                    un_md5_data[k].push_back(0x00);
-                    continue;
-                }
-                un_md5_data[k].push_back(opcodeAndStr[cursor + cId]);
-            }
-            unMD5DataSizeMap[k] = s_len;
-            if (un_md5_data[k].size() != s_len)
-            {
-                //结尾处多余的0x00不计入MD5计算内
-                //unMD5DataSizeMap[k] = un_md5_data[k].size();
-                for (size_t x = 0; x < (s_len - un_md5_data[k].size()); x++)
-                {
-                    un_md5_data[k].push_back(0x00);
-                }
-            }
-            cursor += s_len;
-        }
-    }
-    vector<string> md5List;
+    //map<uint32_t, vector<uint8_t>> un_md5_data;
+    //map<uint32_t, uint32_t> unMD5DataSizeMap;
+    //cursor = 0;
+    //for (size_t k = 0; k < orgin_data.size(); k++)
+    //{
+    //    if (orgin_data[k].size() == 1 && orgin_data[k][0] == 0x1a)
+    //    {
+    //        for (size_t cId = 0; cId < 3; cId++)
+    //        {
+    //            un_md5_data[k].push_back(opcodeAndStr[cursor + cId]);
+    //        }
+    //        unMD5DataSizeMap[k] = 3;
+    //        cursor += 3;
+    //    }
+    //    else
+    //    {
+    //        uint32_t s_len = size_map[k];
+    //        for (size_t cId = 0; cId < s_len; cId++)
+    //        {
+    //            if (cursor + cId >= opcodeAndStr.size())
+    //            {
+    //                un_md5_data[k].push_back(0x00);
+    //                continue;
+    //            }
+    //            un_md5_data[k].push_back(opcodeAndStr[cursor + cId]);
+    //        }
+    //        unMD5DataSizeMap[k] = s_len;
+    //        if (un_md5_data[k].size() != s_len)
+    //        {
+    //            //结尾处多余的0x00不计入MD5计算内
+    //            //unMD5DataSizeMap[k] = un_md5_data[k].size();
+    //            for (size_t x = 0; x < (s_len - un_md5_data[k].size()); x++)
+    //            {
+    //                un_md5_data[k].push_back(0x00);
+    //            }
+    //        }
+    //        cursor += s_len;
+    //    }
+    //}
+
+    /*vector<string> md5List;
     for (size_t k = 0; k < un_md5_data.size(); k++)
     {
         uint32_t dataSize = unMD5DataSizeMap[k];
@@ -1151,6 +1203,27 @@ void opstrToSimiValue(vector<oneOpcode> allOpcode, char* opBitSize)
             sPtr[cId] = un_md5_data[k][cId];
         }
         md5Obj.update(sPtr, dataSize);
+        md5Obj.finalize();
+
+        bool uniq = true;
+        for (size_t i = 0; i < md5List.size(); i++)
+        {
+            if (!strcmp(md5List[i].c_str(), md5Obj.hexdigest().c_str()))
+            {
+                uniq = false;
+                break;
+            }
+        }
+        if (!uniq) continue;
+        md5List.push_back(md5Obj.hexdigest());
+        printf("%s\n", md5Obj.hexdigest().c_str());
+    }*/
+
+    vector<string> md5List;
+    for (size_t i = 0; i < allOpBlk.size(); i++)
+    {
+        MD5 md5Obj = MD5::MD5();
+        md5Obj.update(allOpBlk[i].opcodeBlckPtr, allOpBlk[i].opSize);
         md5Obj.finalize();
 
         bool uniq = true;
@@ -1343,11 +1416,11 @@ void printOpSimiValue(parser apk_parser, char* opBitSize)
                 {
                     continue;
                 }
-                char* onlyCodePtr = (char*)malloc(opcodeAndStr.size());
+                /*char* onlyCodePtr = (char*)malloc(opcodeAndStr.size());
                 for (size_t codeId = 0; codeId < opcodeAndStr.size(); codeId++)
                 {
                     onlyCodePtr[codeId] = opcodeAndStr[codeId];
-                }
+                }*/
 
 
                 opstrToSimiValue(opcodeAndStr, opBitSize);
@@ -1389,10 +1462,10 @@ void printOpSimiValue(parser apk_parser, char* opBitSize)
                 {
                     continue;
                 }
-                for (size_t codeId = 0; codeId < opcodeAndStr.size(); codeId++)
+                /*for (size_t codeId = 0; codeId < opcodeAndStr.size(); codeId++)
                 {
                     onlyCodePtr[codeId] = opcodeAndStr[codeId];
-                }
+                }*/
 
                 opstrToSimiValue(opcodeAndStr, opBitSize);
             }
