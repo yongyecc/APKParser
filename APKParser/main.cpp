@@ -4,7 +4,15 @@
 #include "Crc32.h"
 
 
-vector<uint8_t> func_30B(uint16_t* a1, int a2, parser dex_parser)
+
+struct oneOpcode
+{
+    char* stringAddr;
+    uint8_t opcode;
+    uint32_t stringSize;
+};
+
+vector<oneOpcode> func_30B(uint16_t* a1, int a2, parser dex_parser)
 {
     //a1: 指令码指针。
     //a2: 指令码长度
@@ -14,6 +22,7 @@ vector<uint8_t> func_30B(uint16_t* a1, int a2, parser dex_parser)
     __int64 v9; // [rsp+50h] [rbp-B0h]
     uint8_t v5;
 
+    vector<oneOpcode> allOpcode;
 
     char* ret = NULL;
     uint32_t feature_size = 0;
@@ -24,25 +33,34 @@ vector<uint8_t> func_30B(uint16_t* a1, int a2, parser dex_parser)
     v9 = 0;
     uint32_t opcode_number = 0;
     uint32_t str_size = 0;
+    uint32_t string_number = 0;
+
+    //一个类方法中堆块4的数量，有类方法中独立块MD5计算引用
+    uint32_t heap4Size = 0;
+
 LABEL_228:
     while (v7 < (uint16_t*)((char*)a1 + a2))
     {
+        oneOpcode oneOP = {0};
+        
         uint32_t ops_len = ops.size();
         v8 = *v7;
         v5 = v8;
         opcode_number += 1;
+        only_op.push_back(v5);
 
-        if (ops.size() >= 60) {
+        oneOP.opcode = v5;
+        /*if (ops.size() >= 60) 
+        {
             printf("");
         }
-        printf("[%d] %x\n", ops.size(), v8);
+        printf("[%d] %x\n", ops.size(), v8);*/
         
         char* s = 0;
         if (v5 != 0x00)
         {
 
             ops.push_back(v5);
-            only_op.push_back(v5);
         }
             
         if (v5 <= 0x6Du || v5 > 0x78u)
@@ -59,11 +77,13 @@ LABEL_228:
                 {
                     ops.push_back('\0');
                     str_size += strlen(s);
+                    string_number++;
                     for (size_t i = 0; i < strlen(s); i++)
                     {
                         ops.push_back(s[i]);
                     }
                     ops.push_back('\0');
+                    oneOP.stringAddr = s;
                 }
                 
             }     
@@ -84,16 +104,20 @@ LABEL_228:
                     s = dex_parser.get_string_by_id(n_id);
                     str_size += strlen(s);
                     //printf("%s\n", s);
+                    string_number++;
                     for (size_t i = 0; i < strlen(s); i++)
                     {
                         ops.push_back(s[i]);
+
                     }
                     ops.push_back('\0');
+                    oneOP.stringAddr = s;
                 }
             }
 
         }
-
+        oneOP.stringSize = string_number;
+        allOpcode.push_back(oneOP);
         
         if ((v5 == 0x300 || v5 == 0x200 || v5 == 0x100) && v9)// 0x300：数组
         {
@@ -106,7 +130,7 @@ LABEL_228:
         else
         {
             if (v9)
-                return ops;
+                return allOpcode;
         LABEL_12:
             switch ((unsigned __int8)v5)
             {
@@ -800,30 +824,32 @@ LABEL_228:
                 goto LABEL_228;
             }
         }
+
+        
         
     }
 
     //打印从类方法中提取的特征码
-    //printf("[*]类方法中提取的操作码数量: 0x%x\n\n", opcode_number);
-    //for (size_t i = 0; i < opcode_number; i++)
-    //{
-    //    if (i != 0 && i % 16 == 0)
-    //        printf("\n");
-    //    if (i>=only_op.size())
-    //    {
-    //        break;
-    //    }
-    //    if (only_op[i] < 0x10)
-    //    {
-    //        printf("0%x ", only_op[i]);
-    //        continue;
-    //    }
-    //    printf("%x ", only_op[i]);
-    //};
+    printf("\n[*]类方法中提取的操作码数量: 0x%x\n\n", opcode_number);
+    for (size_t i = 0; i < opcode_number; i++)
+    {
+        if (i != 0 && i % 16 == 0)
+            printf("\n");
+        if (i>=only_op.size())
+        {
+            break;
+        }
+        if (only_op[i] < 0x10)
+        {
+            printf("0%x ", only_op[i]);
+            continue;
+        }
+        printf("%x ", only_op[i]);
+    };
 
     printf("\n[*]字符串总长度: 0x%x\n\n", str_size);
-    printf("[*]opcode feature number(字符串总长度 + 3 * 方法中提取的opcode数量) = 0x%x\n\n", str_size + 3*opcode_number);
-    for (size_t i = 0; i < str_size + 3 * opcode_number; i++)
+    printf("[*] Opcode MD5:  opcode feature number(字符串总长度 + 3 * 方法中提取的opcode数量) = 0x%x\n\n", str_size + 3*opcode_number);
+    /*for (size_t i = 0; i < str_size + 3 * opcode_number; i++)
     {
         if (i != 0 && i % 16 == 0)
             printf("\n");
@@ -840,13 +866,543 @@ LABEL_228:
 
         }
         printf("%x ", ops[i]);
-    }
-    printf("\n");
+    }*/
+    printf("[*] Opcode Similarity feature number(字符串总长度 + 2*字符串条数 + 提取的操作码数量) = 0x%x\n\n", 2 * string_number + str_size + opcode_number);
+    for (size_t i = 0; i < (2*string_number + str_size + opcode_number); i++)
+    {
+        if (i != 0 && i % 16 == 0)
+            printf("\n");
+        if (i >= ops.size())
+        {
+            printf("00 ");
+            ops.push_back('\x0');
+            continue;
+        }
+        if (ops[i] < 0x10)
+        {
+            printf("0%x ", ops[i]);
+            continue;
 
+        }
+        printf("%x ", ops[i]);
+    }
+
+
+    printf("\n");
     
-    return ops;
+    
+    return allOpcode;
 
 }
+
+
+//void printSymbolByCrcMD5(parser apk_parser, uint32_t crcvalue, std::string md5v)
+//{
+//    uint32_t class_size = apk_parser.class_data_list.size();
+//    for (size_t i = 0; i < class_size; i++)
+//    {
+//        if (i < 855) {
+//            continue;
+//        }
+//        if (apk_parser.class_data_list[i].class_data.virtual_methods_size != 0 ||
+//            apk_parser.class_data_list[i].class_data.direct_methods_size != 0) {
+//            //travel direct_methods
+//            for (size_t j = 0; j < apk_parser.class_data_list[i].class_data.direct_methods_size; j++)
+//            {
+//                uint32_t codeOff = apk_parser.class_data_list[i].class_data.directmethods_list[j].code_off;
+//                if (codeOff == 0)
+//                {
+//                    //printf("[%d][%d]\tDirectMethod code offset == 0\n", i, j);
+//                    continue;
+//                }
+//                char* codeptr = apk_parser.class_data_list[i].class_data.directmethods_list[j].code.insns;
+//                uint32_t codeSize = apk_parser.class_data_list[i].class_data.directmethods_list[j].code.insns_size * 2;
+//                if (codeSize == 0) {
+//                    //printf("[%d][%d]\tDirectMethod code size == 0\n", i, j);
+//                    continue;
+//                }
+//                char* class_name = apk_parser.get_classname_by_id(i);
+//                uint32_t methodNameId = apk_parser.class_data_list[i].class_data.directmethods_list[j].method_idx;
+//                if (j != 0) {
+//                    for (size_t preindex = 0; preindex < j; preindex++)
+//                    {
+//                        methodNameId += apk_parser.class_data_list[i].class_data.directmethods_list[preindex].method_idx;
+//                    }
+//
+//                }
+//                char* methodName = apk_parser.get_string_by_id(apk_parser.get_method_by_id(methodNameId).name_idx);
+//                printf("[D][%d][%d]\tSymbol: %s -> %s\n", i, j, class_name, methodName);
+//                if (i == 1264) {
+//                    printf("ERROR\n");
+//                }
+//
+//                vector<oneOpcode> onlyCode = func_30B((uint16_t*)codeptr, codeSize, apk_parser);
+//                char* onlyCodePtr = (char*)malloc(onlyCode.size());
+//                for (size_t codeId = 0; codeId < onlyCode.size(); codeId++)
+//                {
+//                    onlyCodePtr[codeId] = onlyCode[codeId];
+//                }
+//
+//                MD5 md5 = MD5::MD5();
+//                md5.update(onlyCodePtr, onlyCode.size());
+//                md5.finalize();
+//                std::string md5Value = md5.hexdigest();
+//
+//                std::cout << "\tMD5 = " << md5Value << "\n";
+//
+//                if (!strcmp(strupr((char*)md5Value.c_str()), strupr((char*)md5v.c_str())))
+//                {
+//                    printf("Found it -> %s\n\n\n", md5v.c_str());
+//                    exit(0);
+//                }
+//
+//                uint32_t crc = crc32_bitwise(onlyCodePtr, onlyCode.size());
+//                printf("\tCRC32 = %X\n\n\n", crc);
+//
+//
+//                //if (crc == crcvalue)
+//                //{
+//                //    printf("Found it -> %x\n", crcvalue);
+//                //    exit(0);
+//                //}
+//
+//            }
+//            //travel virutal methods
+//            for (size_t j = 0; j < apk_parser.class_data_list[i].class_data.virtual_methods_size; j++)
+//            {
+//                uint32_t codeOff = apk_parser.class_data_list[i].class_data.virtualmethods_list[j].code_off;
+//                if (codeOff == 0)
+//                {
+//                    //printf("[%d][%d]\tVirtual Method code offset == 0\n", i, j);
+//                    continue;
+//                }
+//                char* codeptr = apk_parser.class_data_list[i].class_data.virtualmethods_list[j].code.insns;
+//                uint32_t codeSize = apk_parser.class_data_list[i].class_data.virtualmethods_list[j].code.insns_size * 2;
+//                if (codeSize == 0) {
+//                    //printf("[%d][%d]\tVirtual Method  code size == 0\n", i, j);
+//                    continue;
+//                }
+//                char* class_name = apk_parser.get_classname_by_id(i);
+//                uint32_t methodNameId = apk_parser.class_data_list[i].class_data.virtualmethods_list[j].method_idx;
+//                if (j != 0) {
+//                    for (size_t preindex = 0; preindex < j; preindex++)
+//                    {
+//                        methodNameId += apk_parser.class_data_list[i].class_data.virtualmethods_list[preindex].method_idx;
+//                    }
+//
+//                }
+//                char* methodName = apk_parser.get_string_by_id(apk_parser.get_method_by_id(methodNameId).name_idx);
+//                printf("[V][%d][%d]\tSymbol: %s -> %s\n", i, j, class_name, methodName);
+//                if (i == 134 && j == 15)
+//                {
+//                    printf("ERROR\n");
+//                }
+//                vector<func_30B> onlyCode = func_30B((uint16_t*)codeptr, codeSize, apk_parser);
+//                char* onlyCodePtr = (char*)malloc(onlyCode.size());
+//                for (size_t codeId = 0; codeId < onlyCode.size(); codeId++)
+//                {
+//                    onlyCodePtr[codeId] = onlyCode[codeId];
+//                }
+//
+//                MD5 md5 = MD5::MD5();
+//                md5.update(onlyCodePtr, onlyCode.size());
+//                md5.finalize();
+//                std::string md5Value = md5.hexdigest();
+//                std::cout << "\tMD5 = " << md5Value << "\n";
+//
+//                if (!strcmp(strupr((char*)md5Value.c_str()), strupr((char*)md5v.c_str())))
+//                {
+//                    printf("Found it -> %s\n", md5v.c_str());
+//                    exit(0);
+//                }
+//
+//                uint32_t crc = crc32_bitwise(onlyCodePtr, onlyCode.size());
+//                printf("\tCRC32 = %X\n\n\n", crc);
+//
+//                //if (crc == crcvalue)
+//                //{
+//                //    printf("Found it -> %x\n", crcvalue);
+//                //    exit(0);
+//                //}
+//            }
+//        }
+//        else {
+//            printf("[%d]\t 0 Methods\n", i);
+//        }
+//
+//    }
+//}
+
+
+/// <summary>
+/// 遍历每个类方法提取opcde，以及对应字符串构成的特征块，获取MD5列表，将MD5列表转成一个16字节的值，和参数比对找到命中参数"opBitSize"的类方法符号。
+/// </summary>
+/// <param name="allOpcode">类方法的opcode结构体列表，包含opcode、字符串地址(如果存在)</param>
+/// <param name="opBitSize">安天检出病毒的HASH值。</param>
+void opstrToSimiValue(vector<oneOpcode> allOpcode, char* opBitSize)
+{
+    //opcode+str 转成 MD5列表
+    uint32_t cursor = 0;
+    uint32_t id = 0;
+    map<uint32_t, vector<uint8_t>> orgin_data;
+
+    while (cursor < opcodeAndStr.size())
+    {
+        if (opcodeAndStr[cursor] == 0x1a)
+        {
+            if (opcodeAndStr[cursor + 1] != 0x00)
+            {
+                orgin_data[id].push_back(0x1a);
+                cursor++;
+                id++;
+                continue;
+            }
+            orgin_data[id].push_back(0x1a);
+            orgin_data[id].push_back(0x00);
+            cursor += 2;
+            while (opcodeAndStr[cursor] != 0x00)
+            {
+                orgin_data[id].push_back(opcodeAndStr[cursor]);
+                cursor++;
+            }
+            orgin_data[id].push_back(0x00);
+            cursor++;
+
+            id++;
+        }
+        else if (opcodeAndStr[cursor] >= 0x6e && opcodeAndStr[cursor] <= 0x78)
+        {
+            orgin_data[id].push_back(opcodeAndStr[cursor]);
+            if (opcodeAndStr[cursor + 1] != 0x00)
+            {
+                cursor++;
+                continue;
+            }
+            orgin_data[id].push_back(0x00);
+            cursor += 2;
+            while (opcodeAndStr[cursor] != 0x00)
+            {
+                orgin_data[id].push_back(opcodeAndStr[cursor]);
+                cursor++;
+            }
+            orgin_data[id].push_back(0x00);
+            cursor++;
+            id++;
+        }
+        else
+        {
+            orgin_data[id].push_back(opcodeAndStr[cursor]);
+            cursor++;
+        }
+    }
+    map<uint32_t, uint8_t> size_map;
+    for (size_t l = 0; l < orgin_data.size(); l++)
+    {
+        size_map[l] = orgin_data[l].size();
+    }
+
+    map<uint32_t, vector<uint8_t>> un_md5_data;
+    map<uint32_t, uint32_t> unMD5DataSizeMap;
+    cursor = 0;
+    for (size_t k = 0; k < orgin_data.size(); k++)
+    {
+        if (orgin_data[k].size() == 1 && orgin_data[k][0] == 0x1a)
+        {
+            for (size_t cId = 0; cId < 3; cId++)
+            {
+                un_md5_data[k].push_back(opcodeAndStr[cursor + cId]);
+            }
+            unMD5DataSizeMap[k] = 3;
+            cursor += 3;
+        }
+        else
+        {
+            uint32_t s_len = size_map[k];
+            for (size_t cId = 0; cId < s_len; cId++)
+            {
+                if (cursor + cId >= opcodeAndStr.size())
+                {
+                    un_md5_data[k].push_back(0x00);
+                    continue;
+                }
+                un_md5_data[k].push_back(opcodeAndStr[cursor + cId]);
+            }
+            unMD5DataSizeMap[k] = s_len;
+            if (un_md5_data[k].size() != s_len)
+            {
+                //结尾处多余的0x00不计入MD5计算内
+                //unMD5DataSizeMap[k] = un_md5_data[k].size();
+                for (size_t x = 0; x < (s_len - un_md5_data[k].size()); x++)
+                {
+                    un_md5_data[k].push_back(0x00);
+                }
+            }
+            cursor += s_len;
+        }
+    }
+    vector<string> md5List;
+    for (size_t k = 0; k < un_md5_data.size(); k++)
+    {
+        uint32_t dataSize = unMD5DataSizeMap[k];
+        MD5 md5Obj = MD5::MD5();
+        char* sPtr = (char*)malloc(dataSize);
+        for (size_t cId = 0; cId < dataSize; cId++)
+        {
+            sPtr[cId] = un_md5_data[k][cId];
+        }
+        md5Obj.update(sPtr, dataSize);
+        md5Obj.finalize();
+
+        bool uniq = true;
+        for (size_t i = 0; i < md5List.size(); i++)
+        {
+            if (!strcmp(md5List[i].c_str(), md5Obj.hexdigest().c_str()))
+            {
+                uniq = false;
+                break;
+            }
+        }
+        if (!uniq) continue;
+        md5List.push_back(md5Obj.hexdigest());
+        printf("%s\n", md5Obj.hexdigest().c_str());
+    }
+
+    //取MD5列表中每个MD5值取每位0和1数量得到一个128位长度得值和病毒库特征中得128位值进行相似性计算
+    char* a2 = (char*)malloc(16);
+    memset(a2, 0, 16);
+    uint8_t v14 = 0;
+    int v7[128] = { 0 };
+    int v5 = 0;
+    int v10 = 1;
+    char v15 = 0;
+    for (size_t i = 0; i < md5List.size(); i++)
+    {
+        char ptr[16] = { 0 };
+        for (size_t j = 0; j < 16; j++)
+        {
+            int hex = stoi(md5List[i].substr(j * 2, 2), 0, 16);
+
+            ptr[j] = (char)hex;
+        }
+
+        for (size_t j = 0; j <= 127; ++j)
+        {
+            v14 = 1 << (j & 7);
+            if (v14 & *((uint8_t*)ptr + (j >> 3)))
+                v5 = v10 + v7[j];
+            else
+                v5 = v7[j] - v10;
+            v7[j] = v5;
+        }
+
+    }
+    for (int j = 0; j <= 127; ++j)
+    {
+        if (v7[j] > 0)
+        {
+            v15 = 1;
+            *(int8_t*)(a2 + (j >> 3)) += 1 << (j & 7);
+        }
+    }
+
+    printf("\nOpcode and String's bit size of Method is:\t");
+    for (size_t i = 0; i < 16; i++)
+    {
+        printf("%02x", (unsigned char)a2[i]);
+    }
+    printf("\n\n");
+
+    if (!strncmp(opBitSize, (char*)a2, 16))
+    {
+        printf("Found it\n");
+        exit(0);
+    }
+
+    //安天特征,可以在 func_537 中下断点，获取相似特征。
+    char virus_feature[] = { 0x95, 0x48, 0x9b, 0x33, 0x2c, 0x24, 0xbd, 0xa7, 0xe3, 0x89, 0x08, 0xa0, 0xb8, 0xfa, 0x0f, 0xdc };
+    uint32_t* a1 = (uint32_t*)virus_feature;
+
+    //char a3[] = {  0x84, 0x48, 0x8B, 0x32, 0x2C, 0x24, 0xBD, 0xA7, 0xE3, 0x2B, 0x48, 0xA0, 0xB8, 0xFA, 0x0F, 0xFC };
+    //a2 = a3;
+
+    uint8_t Gould_Sequence[] = {
+        0,1,1,2,1,2,2,3,1,2,2,3,2,3,3,4,
+        1,2,2,3,2,3,3,4,2,3,3,4,3,4,4,5,
+        1,2,2,3,2,3,3,4,2,3,3,4,3,4,4,5,
+        2,3,3,4,3,4,4,5,3,4,4,5,4,5,5,6,
+        1,2,2,3,2,3,3,4,2,3,3,4,3,4,4,5,
+        2,3,3,4,3,4,4,5,3,4,4,5,4,5,5,6,
+        2,3,3,4,3,4,4,5,3,4,4,5,4,5,5,6,
+        3,4,4,5,4,5,5,6,4,5,5,6,5,6,6,7,
+        1,2,2,3,2,3,3,4,2,3,3,4,3,4,4,5,
+        2,3,3,4,3,4,4,5,3,4,4,5,4,5,5,6,
+        2,3,3,4,3,4,4,5,3,4,4,5,4,5,5,6,
+        3,4,4,5,4,5,5,6,4,5,5,6,5,6,6,7,
+        2,3,3,4,3,4,4,5,3,4,4,5,4,5,5,6,
+        3,4,4,5,4,5,5,6,4,5,5,6,5,6,6,7,
+        3,4,4,5,4,5,5,6,4,5,5,6,5,6,6,7,
+        4,5,5,6,5,6,6,7,5,6,6,7,6,7,7,8
+    };
+    
+    int v4;
+    uint32_t* v6;
+    uint32_t* v8;
+    int* v9;
+    int simiValue = 0;
+
+    v6 = a1;
+    v8 = (uint32_t*)a2;
+    v4 = *a1 ^ *(uint32_t*)a2;
+    v9 = &v4;
+    v5 = 0;
+    v5 += Gould_Sequence[(uint8_t)v4];
+    v5 += Gould_Sequence[(uint8_t)(v4 >> 8)];
+    v5 += Gould_Sequence[(uint8_t)(v4 >> 16)];
+    v5 += Gould_Sequence[(uint8_t)(v4 >> 24)];
+    if ((int)v5 <= 19)
+    {
+        v4 = v6[1] ^ v8[1];
+        v9 = &v4;
+        v5 += Gould_Sequence[(uint8_t)v4];
+        v5 += Gould_Sequence[(uint8_t)(v4 >> 8)];
+        v5 += Gould_Sequence[(uint8_t)(v4 >> 16)];
+        v5 += Gould_Sequence[(uint8_t)(v4 >> 24)];
+        if ((int)v5 <= 19)
+        {
+            v4 = v6[2] ^ v8[2];
+            v9 = &v4;
+            v5 += Gould_Sequence[(uint8_t)v4];
+            v5 += Gould_Sequence[(uint8_t)(v4 >> 8)];
+            v5 += Gould_Sequence[(uint8_t)(v4 >> 16)];
+            v5 += Gould_Sequence[(uint8_t)(v4 >> 24)];
+            if ((int)v5 <= 19)
+            {
+                v4 = v6[3] ^ v8[3];
+                v9 = &v4;
+                v5 += Gould_Sequence[(uint8_t)v4];
+                v5 += Gould_Sequence[(uint8_t)(v4 >> 8)];
+                v5 += Gould_Sequence[(uint8_t)(v4 >> 16)];
+                v5 += Gould_Sequence[(uint8_t)(v4 >> 24)];
+            }
+        }
+    }
+    simiValue = v5;
+    printf("\nSimilarity Value is: 0x%X\n\n", simiValue);
+
+    if (simiValue == 9)
+    {
+        printf("similar value is 9\n");
+        exit(0);
+    }
+
+
+}
+
+void printOpSimiValue(parser apk_parser, char* opBitSize)
+{
+    //遍历每个类方法的opcode
+    uint32_t class_size = apk_parser.class_data_list.size();
+    for (size_t i = 0; i < class_size; i++)
+    {
+        if (apk_parser.class_data_list[i].class_data.virtual_methods_size != 0 ||
+            apk_parser.class_data_list[i].class_data.direct_methods_size != 0) {
+            //travel direct_methods
+            for (size_t j = 0; j < apk_parser.class_data_list[i].class_data.direct_methods_size; j++)
+            {
+                uint32_t codeOff = apk_parser.class_data_list[i].class_data.directmethods_list[j].code_off;
+                if (codeOff == 0)
+                {
+                    //printf("[%d][%d]\tDirectMethod code offset == 0\n", i, j);
+                    continue;
+                }
+                char* codeptr = apk_parser.class_data_list[i].class_data.directmethods_list[j].code.insns;
+                uint32_t codeSize = apk_parser.class_data_list[i].class_data.directmethods_list[j].code.insns_size * 2;
+                if (codeSize == 0) {
+                    //printf("[%d][%d]\tDirectMethod code size == 0\n", i, j);
+                    continue;
+                }
+                char* class_name = apk_parser.get_classname_by_id(i);
+                uint32_t methodNameId = apk_parser.class_data_list[i].class_data.directmethods_list[j].method_idx;
+                if (j != 0) {
+                    for (size_t preindex = 0; preindex < j; preindex++)
+                    {
+                        methodNameId += apk_parser.class_data_list[i].class_data.directmethods_list[preindex].method_idx;
+                    }
+
+                }
+                char* methodName = apk_parser.get_string_by_id(apk_parser.get_method_by_id(methodNameId).name_idx);
+                printf("\n[D][%d][%d]\tSymbol: %s -> %s\n", i, j, class_name, methodName);
+
+                if (!strcmp(class_name, "Lcom/atxkj/sdm/a/c;"))
+                {
+                    printf("");
+                }
+
+                vector<oneOpcode> opcodeAndStr = func_30B((uint16_t*)codeptr, codeSize, apk_parser);
+                if (opcodeAndStr.size() <24)
+                {
+                    continue;
+                }
+                char* onlyCodePtr = (char*)malloc(opcodeAndStr.size());
+                for (size_t codeId = 0; codeId < opcodeAndStr.size(); codeId++)
+                {
+                    onlyCodePtr[codeId] = opcodeAndStr[codeId];
+                }
+
+
+                opstrToSimiValue(opcodeAndStr, opBitSize);
+
+            }
+            //travel virutal methods
+            for (size_t j = 0; j < apk_parser.class_data_list[i].class_data.virtual_methods_size; j++)
+            {
+                uint32_t codeOff = apk_parser.class_data_list[i].class_data.virtualmethods_list[j].code_off;
+                if (codeOff == 0)
+                {
+                    //printf("[%d][%d]\tVirtual Method code offset == 0\n", i, j);
+                    continue;
+                }
+                char* codeptr = apk_parser.class_data_list[i].class_data.virtualmethods_list[j].code.insns;
+                uint32_t codeSize = apk_parser.class_data_list[i].class_data.virtualmethods_list[j].code.insns_size * 2;
+                if (codeSize == 0) {
+                    //printf("[%d][%d]\tVirtual Method  code size == 0\n", i, j);
+                    continue;
+                }
+                char* class_name = apk_parser.get_classname_by_id(i);
+                uint32_t methodNameId = apk_parser.class_data_list[i].class_data.virtualmethods_list[j].method_idx;
+                if (j != 0) {
+                    for (size_t preindex = 0; preindex < j; preindex++)
+                    {
+                        methodNameId += apk_parser.class_data_list[i].class_data.virtualmethods_list[preindex].method_idx;
+                    }
+
+                }
+                char* methodName = apk_parser.get_string_by_id(apk_parser.get_method_by_id(methodNameId).name_idx);
+                printf("\n[V][%d][%d]\tSymbol: %s -> %s\n", i, j, class_name, methodName);
+                if (i == 134 && j == 15)
+                {
+                    printf("ERROR\n");
+                }
+                vector<oneOpcode> opcodeAndStr = func_30B((uint16_t*)codeptr, codeSize, apk_parser);
+                char* onlyCodePtr = (char*)malloc(opcodeAndStr.size());
+                if (opcodeAndStr.size() < 24)
+                {
+                    continue;
+                }
+                for (size_t codeId = 0; codeId < opcodeAndStr.size(); codeId++)
+                {
+                    onlyCodePtr[codeId] = opcodeAndStr[codeId];
+                }
+
+                opstrToSimiValue(opcodeAndStr, opBitSize);
+            }
+        }
+        else {
+            printf("[%d]\t 0 Methods\n", i);
+        }
+    }
+}
+
 
 
 int main()
@@ -919,138 +1475,11 @@ int main()
 
     uint32_t crcvalue = 0xD579505A;
     std::string md5v = "4D5EE4C6A8E34004FED6B291736B5F2B";
+    //printSymbolByCrcMD5(apk_parser, crcvalue, md5v);
 
-    uint32_t class_size = apk_parser.class_data_list.size();
-    for (size_t i = 0; i < class_size; i++)
-    {
-        if (i < 855) {
-            continue;
-        }
-        if (apk_parser.class_data_list[i].class_data.virtual_methods_size != 0 ||
-            apk_parser.class_data_list[i].class_data.direct_methods_size != 0) {
-            //travel direct_methods
-            for (size_t j = 0; j < apk_parser.class_data_list[i].class_data.direct_methods_size; j++)
-            {
-                uint32_t codeOff = apk_parser.class_data_list[i].class_data.directmethods_list[j].code_off;
-                if (codeOff == 0)
-                {
-                    //printf("[%d][%d]\tDirectMethod code offset == 0\n", i, j);
-                    continue;
-                }
-                char* codeptr = apk_parser.class_data_list[i].class_data.directmethods_list[j].code.insns;
-                uint32_t codeSize = apk_parser.class_data_list[i].class_data.directmethods_list[j].code.insns_size * 2;
-                if (codeSize == 0) {
-                    //printf("[%d][%d]\tDirectMethod code size == 0\n", i, j);
-                    continue;
-                }
-                char* class_name = apk_parser.get_classname_by_id(i);
-                uint32_t methodNameId = apk_parser.class_data_list[i].class_data.directmethods_list[j].method_idx;
-                if (j != 0) {
-                    for (size_t preindex = 0; preindex < j; preindex++)
-                    {
-                        methodNameId += apk_parser.class_data_list[i].class_data.directmethods_list[preindex].method_idx;
-                    }
+    char opBitSize[] = { 0x84, 0x48, 0x8B, 0x32, 0x2C, 0x24, 0xBD, 0xA7, 0xE3, 0x2B, 0x48, 0xA0, 0xB8, 0xFA, 0x0F, 0xFC };
 
-                }
-                char* methodName = apk_parser.get_string_by_id(apk_parser.get_method_by_id(methodNameId).name_idx);
-                printf("[D][%d][%d]\tSymbol: %s -> %s\n", i, j, class_name, methodName);
-                if (i == 1264) {
-                    printf("ERROR\n");
-                }
-                
-                vector<uint8_t> onlyCode = func_30B((uint16_t*)codeptr, codeSize, apk_parser);
-                char* onlyCodePtr = (char*)malloc(onlyCode.size());
-                for (size_t codeId = 0; codeId < onlyCode.size(); codeId++)
-                {
-                    onlyCodePtr[codeId] = onlyCode[codeId];
-                }
+    printOpSimiValue(apk_parser, opBitSize);
 
-                MD5 md5 = MD5::MD5();
-                md5.update(onlyCodePtr, onlyCode.size());
-                md5.finalize();
-                std::string md5Value =  md5.hexdigest();
-
-                std::cout << "\tMD5 = " << md5Value << "\n";
-
-                if (!strcmp(strupr((char*)md5Value.c_str()), strupr((char*)md5v.c_str())))
-                {
-                    printf("Found it -> %s\n\n\n", md5v.c_str());
-                    exit(0);
-                }
-
-                uint32_t crc = crc32_bitwise(onlyCodePtr, onlyCode.size());
-                printf("\tCRC32 = %X\n\n\n", crc);
-
-                
-                //if (crc == crcvalue)
-                //{
-                //    printf("Found it -> %x\n", crcvalue);
-                //    exit(0);
-                //}
-
-            }
-            //travel virutal methods
-            for (size_t j = 0; j < apk_parser.class_data_list[i].class_data.virtual_methods_size; j++)
-            {
-                uint32_t codeOff = apk_parser.class_data_list[i].class_data.virtualmethods_list[j].code_off;
-                if (codeOff == 0)
-                {
-                    //printf("[%d][%d]\tVirtual Method code offset == 0\n", i, j);
-                    continue;
-                }
-                char* codeptr = apk_parser.class_data_list[i].class_data.virtualmethods_list[j].code.insns;
-                uint32_t codeSize = apk_parser.class_data_list[i].class_data.virtualmethods_list[j].code.insns_size * 2;
-                if (codeSize == 0) {
-                    //printf("[%d][%d]\tVirtual Method  code size == 0\n", i, j);
-                    continue;
-                }
-                char* class_name = apk_parser.get_classname_by_id(i);
-                uint32_t methodNameId = apk_parser.class_data_list[i].class_data.virtualmethods_list[j].method_idx;
-                if (j != 0) {
-                    for (size_t preindex = 0; preindex < j; preindex++)
-                    {
-                        methodNameId += apk_parser.class_data_list[i].class_data.virtualmethods_list[preindex].method_idx;
-                    }
-                    
-                }
-                char* methodName = apk_parser.get_string_by_id(apk_parser.get_method_by_id(methodNameId).name_idx);
-                printf("[V][%d][%d]\tSymbol: %s -> %s\n", i, j, class_name, methodName);
-                if (i == 134 && j == 15)
-                {
-                    printf("ERROR\n");
-                }
-                vector<uint8_t> onlyCode =  func_30B((uint16_t*)codeptr, codeSize, apk_parser);
-                char* onlyCodePtr = (char*)malloc(onlyCode.size());
-                for (size_t codeId = 0; codeId < onlyCode.size(); codeId++)
-                {
-                    onlyCodePtr[codeId] = onlyCode[codeId];
-                }
-
-                MD5 md5 = MD5::MD5();
-                md5.update(onlyCodePtr, onlyCode.size());
-                md5.finalize();
-                std::string md5Value = md5.hexdigest();
-                std::cout << "\tMD5 = " << md5Value << "\n";
-                
-                if (!strcmp(strupr((char*)md5Value.c_str()), strupr((char*)md5v.c_str())))
-                {
-                    printf("Found it -> %s\n", md5v.c_str());
-                    exit(0);
-                }
-                
-                uint32_t crc = crc32_bitwise(onlyCodePtr, onlyCode.size());
-                printf("\tCRC32 = %X\n\n\n", crc);
-
-                //if (crc == crcvalue)
-                //{
-                //    printf("Found it -> %x\n", crcvalue);
-                //    exit(0);
-                //}
-            }
-        }
-        else {
-            printf("[%d]\t 0 Methods\n", i);
-        }
-    }
 	return 0;
 }
