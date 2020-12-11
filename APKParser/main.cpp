@@ -16,6 +16,9 @@ vector<uint8_t> ops;
 
 vector<oneOpcode> func_30B(uint16_t* a1, int a2, parser dex_parser)
 {
+
+    ops.clear();
+    featureBlckLen = 0;
     //a1: 指令码指针。
     //a2: 指令码长度
     __int64(__fastcall * v6)(__int16*, __int64); // [rsp+8h] [rbp-F8h]
@@ -54,9 +57,9 @@ LABEL_228:
         oneOP.opcode = v5;
         /*if (ops.size() >= 60) 
         {
-            printf("");
+            std::printf("");
         }
-        printf("[%d] %x\n", ops.size(), v8);*/
+        std::printf("[%d] %x\n", ops.size(), v8);*/
         
         char* s = 0;
         if (v5 != 0x00)
@@ -71,9 +74,14 @@ LABEL_228:
             {
                 uint16_t string_id = (uint16_t)v7[1];
                 s = dex_parser.get_string_by_id(string_id);
-                if (!strncmp(s, ".", 1) || !strncmp(s, "", 1))
+                if (!strncmp(s, ".", 1))
                 {
                     s = 0;            
+                }
+                else if (!strncmp(s, "", 1))
+                {
+                    oneOP.stringAddr = s;
+                    string_number++;
                 }
                 else
                 {
@@ -105,7 +113,7 @@ LABEL_228:
                     uint32_t n_id = method.name_idx;
                     s = dex_parser.get_string_by_id(n_id);
                     str_size += strlen(s);
-                    //printf("%s\n", s);
+                    //std::printf("%s\n", s);
                     string_number++;
                     for (size_t i = 0; i < strlen(s); i++)
                     {
@@ -831,66 +839,49 @@ LABEL_228:
     }
 
     //打印从类方法中提取的特征码
-    printf("\n[*]类方法中提取的操作码数量: 0x%x\n\n", opcode_number);
+    std::printf("\n[*]类方法中提取的操作码数量: 0x%x\n\n", opcode_number);
     for (size_t i = 0; i < opcode_number; i++)
     {
         if (i != 0 && i % 16 == 0)
-            printf("\n");
+            std::printf("\n");
         if (i>=only_op.size())
         {
             break;
         }
         if (only_op[i] < 0x10)
         {
-            printf("0%x ", only_op[i]);
+            std::printf("0%x ", only_op[i]);
             continue;
         }
-        printf("%x ", only_op[i]);
+        std::printf("%x ", only_op[i]);
     };
 
-    printf("\n[*]字符串总长度: 0x%x\n\n", str_size);
-    printf("[*] Opcode MD5:  opcode feature number(字符串总长度 + 3 * 方法中提取的opcode数量) = 0x%x\n\n", str_size + 3*opcode_number);
-    /*for (size_t i = 0; i < str_size + 3 * opcode_number; i++)
-    {
-        if (i != 0 && i % 16 == 0)
-            printf("\n");
-        if (i >= ops.size())
-        {
-            printf("00 ");
-            ops.push_back('\x0');
-            continue;
-        }
-        if (ops[i]<0x10)
-        {
-            printf("0%x ", ops[i]);
-            continue;
+    std::printf("\n[*]字符串总长度: 0x%x\n\n", str_size);
+    std::printf("[*] Opcode MD5:  opcode feature number(字符串总长度 + 3 * 方法中提取的opcode数量) = 0x%x\n\n", str_size + 3*opcode_number);
 
-        }
-        printf("%x ", ops[i]);
-    }*/
     featureBlckLen = 2 * string_number + str_size + opcode_number;
-    printf("[*] Opcode Similarity feature number(字符串总长度 + 2*字符串条数 + 提取的操作码数量) = 0x%x\n\n", featureBlckLen);
+    std::printf("[*] Opcode Similarity feature number(字符串总长度 + 2*字符串条数 + 提取的操作码数量) = 0x%x\n\n", featureBlckLen);
     for (size_t i = 0; i < (2*string_number + str_size + opcode_number); i++)
     {
         if (i != 0 && i % 16 == 0)
-            printf("\n");
+            std::printf("\n");
         if (i >= ops.size())
         {
-            printf("00 ");
+            std::printf("00 ");
             ops.push_back('\x0');
             continue;
         }
         if (ops[i] < 0x10)
         {
-            printf("0%x ", ops[i]);
+            std::printf("0%x ", ops[i]);
             continue;
 
         }
-        printf("%x ", ops[i]);
+        std::printf("%x ", ops[i]);
     }
 
 
-    printf("\n");
+    std::printf("\n");
     
     
     return allOpcode;
@@ -914,13 +905,13 @@ LABEL_228:
 //                uint32_t codeOff = apk_parser.class_data_list[i].class_data.directmethods_list[j].code_off;
 //                if (codeOff == 0)
 //                {
-//                    //printf("[%d][%d]\tDirectMethod code offset == 0\n", i, j);
+//                    //std::printf("[%d][%d]\tDirectMethod code offset == 0\n", i, j);
 //                    continue;
 //                }
 //                char* codeptr = apk_parser.class_data_list[i].class_data.directmethods_list[j].code.insns;
 //                uint32_t codeSize = apk_parser.class_data_list[i].class_data.directmethods_list[j].code.insns_size * 2;
 //                if (codeSize == 0) {
-//                    //printf("[%d][%d]\tDirectMethod code size == 0\n", i, j);
+//                    //std::printf("[%d][%d]\tDirectMethod code size == 0\n", i, j);
 //                    continue;
 //                }
 //                char* class_name = apk_parser.get_classname_by_id(i);
@@ -933,9 +924,9 @@ LABEL_228:
 //
 //                }
 //                char* methodName = apk_parser.get_string_by_id(apk_parser.get_method_by_id(methodNameId).name_idx);
-//                printf("[D][%d][%d]\tSymbol: %s -> %s\n", i, j, class_name, methodName);
+//                std::printf("[D][%d][%d]\tSymbol: %s -> %s\n", i, j, class_name, methodName);
 //                if (i == 1264) {
-//                    printf("ERROR\n");
+//                    std::printf("ERROR\n");
 //                }
 //
 //                vector<oneOpcode> onlyCode = func_30B((uint16_t*)codeptr, codeSize, apk_parser);
@@ -954,17 +945,17 @@ LABEL_228:
 //
 //                if (!strcmp(strupr((char*)md5Value.c_str()), strupr((char*)md5v.c_str())))
 //                {
-//                    printf("Found it -> %s\n\n\n", md5v.c_str());
+//                    std::printf("Found it -> %s\n\n\n", md5v.c_str());
 //                    exit(0);
 //                }
 //
 //                uint32_t crc = crc32_bitwise(onlyCodePtr, onlyCode.size());
-//                printf("\tCRC32 = %X\n\n\n", crc);
+//                std::printf("\tCRC32 = %X\n\n\n", crc);
 //
 //
 //                //if (crc == crcvalue)
 //                //{
-//                //    printf("Found it -> %x\n", crcvalue);
+//                //    std::printf("Found it -> %x\n", crcvalue);
 //                //    exit(0);
 //                //}
 //
@@ -975,13 +966,13 @@ LABEL_228:
 //                uint32_t codeOff = apk_parser.class_data_list[i].class_data.virtualmethods_list[j].code_off;
 //                if (codeOff == 0)
 //                {
-//                    //printf("[%d][%d]\tVirtual Method code offset == 0\n", i, j);
+//                    //std::printf("[%d][%d]\tVirtual Method code offset == 0\n", i, j);
 //                    continue;
 //                }
 //                char* codeptr = apk_parser.class_data_list[i].class_data.virtualmethods_list[j].code.insns;
 //                uint32_t codeSize = apk_parser.class_data_list[i].class_data.virtualmethods_list[j].code.insns_size * 2;
 //                if (codeSize == 0) {
-//                    //printf("[%d][%d]\tVirtual Method  code size == 0\n", i, j);
+//                    //std::printf("[%d][%d]\tVirtual Method  code size == 0\n", i, j);
 //                    continue;
 //                }
 //                char* class_name = apk_parser.get_classname_by_id(i);
@@ -994,10 +985,10 @@ LABEL_228:
 //
 //                }
 //                char* methodName = apk_parser.get_string_by_id(apk_parser.get_method_by_id(methodNameId).name_idx);
-//                printf("[V][%d][%d]\tSymbol: %s -> %s\n", i, j, class_name, methodName);
+//                std::printf("[V][%d][%d]\tSymbol: %s -> %s\n", i, j, class_name, methodName);
 //                if (i == 134 && j == 15)
 //                {
-//                    printf("ERROR\n");
+//                    std::printf("ERROR\n");
 //                }
 //                vector<func_30B> onlyCode = func_30B((uint16_t*)codeptr, codeSize, apk_parser);
 //                char* onlyCodePtr = (char*)malloc(onlyCode.size());
@@ -1014,22 +1005,22 @@ LABEL_228:
 //
 //                if (!strcmp(strupr((char*)md5Value.c_str()), strupr((char*)md5v.c_str())))
 //                {
-//                    printf("Found it -> %s\n", md5v.c_str());
+//                    std::printf("Found it -> %s\n", md5v.c_str());
 //                    exit(0);
 //                }
 //
 //                uint32_t crc = crc32_bitwise(onlyCodePtr, onlyCode.size());
-//                printf("\tCRC32 = %X\n\n\n", crc);
+//                std::printf("\tCRC32 = %X\n\n\n", crc);
 //
 //                //if (crc == crcvalue)
 //                //{
-//                //    printf("Found it -> %x\n", crcvalue);
+//                //    std::printf("Found it -> %x\n", crcvalue);
 //                //    exit(0);
 //                //}
 //            }
 //        }
 //        else {
-//            printf("[%d]\t 0 Methods\n", i);
+//            std::printf("[%d]\t 0 Methods\n", i);
 //        }
 //
 //    }
@@ -1043,11 +1034,7 @@ LABEL_228:
 /// <param name="opBitSize">安天检出病毒的HASH值。</param>
 void opstrToSimiValue(vector<oneOpcode> allOpcode, char* opBitSize)
 {
-
-    vector<vector<uint8_t>> allOpcodeList;
     //opcode+str 转成 MD5列表
-    uint32_t cursor = 0;
-    
     //func_440 解析字节码，构造opcode+str的特征块
     char* featureBlckPtr = (char*)malloc(featureBlckLen);
     for (size_t i = 0; i < featureBlckLen; i++)
@@ -1097,127 +1084,11 @@ void opstrToSimiValue(vector<oneOpcode> allOpcode, char* opBitSize)
         allOpBlk.push_back(one);
     }
 
-  /*  while (cursor < opcodeAndStr.size())
-    {
-        if (opcodeAndStr[cursor] == 0x1a)
-        {
-            if (opcodeAndStr[cursor + 1] != 0x00)
-            {
-                orgin_data[id].push_back(0x1a);
-                cursor++;
-                id++;
-                continue;
-            }
-            orgin_data[id].push_back(0x1a);
-            orgin_data[id].push_back(0x00);
-            cursor += 2;
-            while (opcodeAndStr[cursor] != 0x00)
-            {
-                orgin_data[id].push_back(opcodeAndStr[cursor]);
-                cursor++;
-            }
-            orgin_data[id].push_back(0x00);
-            cursor++;
-
-            id++;
-        }
-        else if (opcodeAndStr[cursor] >= 0x6e && opcodeAndStr[cursor] <= 0x78)
-        {
-            orgin_data[id].push_back(opcodeAndStr[cursor]);
-            if (opcodeAndStr[cursor + 1] != 0x00)
-            {
-                cursor++;
-                continue;
-            }
-            orgin_data[id].push_back(0x00);
-            cursor += 2;
-            while (opcodeAndStr[cursor] != 0x00)
-            {
-                orgin_data[id].push_back(opcodeAndStr[cursor]);
-                cursor++;
-            }
-            orgin_data[id].push_back(0x00);
-            cursor++;
-            id++;
-        }
-        else
-        {
-            orgin_data[id].push_back(opcodeAndStr[cursor]);
-            cursor++;
-        }
-    }*/
     map<uint32_t, uint8_t> size_map;
     for (size_t l = 0; l < orgin_data.size(); l++)
     {
         size_map[l] = orgin_data[l].size();
     }
-
-    //map<uint32_t, vector<uint8_t>> un_md5_data;
-    //map<uint32_t, uint32_t> unMD5DataSizeMap;
-    //cursor = 0;
-    //for (size_t k = 0; k < orgin_data.size(); k++)
-    //{
-    //    if (orgin_data[k].size() == 1 && orgin_data[k][0] == 0x1a)
-    //    {
-    //        for (size_t cId = 0; cId < 3; cId++)
-    //        {
-    //            un_md5_data[k].push_back(opcodeAndStr[cursor + cId]);
-    //        }
-    //        unMD5DataSizeMap[k] = 3;
-    //        cursor += 3;
-    //    }
-    //    else
-    //    {
-    //        uint32_t s_len = size_map[k];
-    //        for (size_t cId = 0; cId < s_len; cId++)
-    //        {
-    //            if (cursor + cId >= opcodeAndStr.size())
-    //            {
-    //                un_md5_data[k].push_back(0x00);
-    //                continue;
-    //            }
-    //            un_md5_data[k].push_back(opcodeAndStr[cursor + cId]);
-    //        }
-    //        unMD5DataSizeMap[k] = s_len;
-    //        if (un_md5_data[k].size() != s_len)
-    //        {
-    //            //结尾处多余的0x00不计入MD5计算内
-    //            //unMD5DataSizeMap[k] = un_md5_data[k].size();
-    //            for (size_t x = 0; x < (s_len - un_md5_data[k].size()); x++)
-    //            {
-    //                un_md5_data[k].push_back(0x00);
-    //            }
-    //        }
-    //        cursor += s_len;
-    //    }
-    //}
-
-    /*vector<string> md5List;
-    for (size_t k = 0; k < un_md5_data.size(); k++)
-    {
-        uint32_t dataSize = unMD5DataSizeMap[k];
-        MD5 md5Obj = MD5::MD5();
-        char* sPtr = (char*)malloc(dataSize);
-        for (size_t cId = 0; cId < dataSize; cId++)
-        {
-            sPtr[cId] = un_md5_data[k][cId];
-        }
-        md5Obj.update(sPtr, dataSize);
-        md5Obj.finalize();
-
-        bool uniq = true;
-        for (size_t i = 0; i < md5List.size(); i++)
-        {
-            if (!strcmp(md5List[i].c_str(), md5Obj.hexdigest().c_str()))
-            {
-                uniq = false;
-                break;
-            }
-        }
-        if (!uniq) continue;
-        md5List.push_back(md5Obj.hexdigest());
-        printf("%s\n", md5Obj.hexdigest().c_str());
-    }*/
 
     vector<string> md5List;
     for (size_t i = 0; i < allOpBlk.size(); i++)
@@ -1237,7 +1108,7 @@ void opstrToSimiValue(vector<oneOpcode> allOpcode, char* opBitSize)
         }
         if (!uniq) continue;
         md5List.push_back(md5Obj.hexdigest());
-        printf("%s\n", md5Obj.hexdigest().c_str());
+        std::printf("%s\n", md5Obj.hexdigest().c_str());
     }
 
     //取MD5列表中每个MD5值取每位0和1数量得到一个128位长度得值和病毒库特征中得128位值进行相似性计算
@@ -1278,16 +1149,16 @@ void opstrToSimiValue(vector<oneOpcode> allOpcode, char* opBitSize)
         }
     }
 
-    printf("\nOpcode and String's bit size of Method is:\t");
+    std::printf("\nOpcode and String's bit size of Method is:\t");
     for (size_t i = 0; i < 16; i++)
     {
-        printf("%02x", (unsigned char)a2[i]);
+        std::printf("%02x", (unsigned char)a2[i]);
     }
-    printf("\n\n");
+    std::printf("\n\n");
 
     if (!strncmp(opBitSize, (char*)a2, 16))
     {
-        printf("Found it\n");
+        std::printf("Found it\n");
         exit(0);
     }
 
@@ -1360,11 +1231,11 @@ void opstrToSimiValue(vector<oneOpcode> allOpcode, char* opBitSize)
         }
     }
     simiValue = v5;
-    printf("\nSimilarity Value is: 0x%X\n\n", simiValue);
+    std::printf("\nSimilarity Value is: 0x%X\n\n", simiValue);
 
     if (simiValue == 9)
     {
-        printf("similar value is 9\n");
+        std::printf("similar value is 9\n");
         exit(0);
     }
 
@@ -1388,13 +1259,13 @@ void printOpSimiValue(parser apk_parser, char* opBitSize)
                 uint32_t codeOff = apk_parser.class_data_list[i].class_data.directmethods_list[j].code_off;
                 if (codeOff == 0)
                 {
-                    //printf("[%d][%d]\tDirectMethod code offset == 0\n", i, j);
+                    //std::printf("[%d][%d]\tDirectMethod code offset == 0\n", i, j);
                     continue;
                 }
                 char* codeptr = apk_parser.class_data_list[i].class_data.directmethods_list[j].code.insns;
                 uint32_t codeSize = apk_parser.class_data_list[i].class_data.directmethods_list[j].code.insns_size * 2;
                 if (codeSize == 0) {
-                    //printf("[%d][%d]\tDirectMethod code size == 0\n", i, j);
+                    //std::printf("[%d][%d]\tDirectMethod code size == 0\n", i, j);
                     continue;
                 }
                 char* class_name = apk_parser.get_classname_by_id(i);
@@ -1407,11 +1278,11 @@ void printOpSimiValue(parser apk_parser, char* opBitSize)
 
                 }
                 char* methodName = apk_parser.get_string_by_id(apk_parser.get_method_by_id(methodNameId).name_idx);
-                printf("\n[D][%d][%d]\tSymbol: %s -> %s\n", i, j, class_name, methodName);
+                std::printf("\n[D][%d][%d]\tSymbol: %s -> %s\n", i, j, class_name, methodName);
 
                 if (!strcmp(class_name, "Lcom/atxkj/sdm/a/c;"))
                 {
-                    printf("");
+                    std::printf("");
                 }
 
                 vector<oneOpcode> opcodeAndStr = func_30B((uint16_t*)codeptr, codeSize, apk_parser);
@@ -1435,13 +1306,13 @@ void printOpSimiValue(parser apk_parser, char* opBitSize)
                 uint32_t codeOff = apk_parser.class_data_list[i].class_data.virtualmethods_list[j].code_off;
                 if (codeOff == 0)
                 {
-                    //printf("[%d][%d]\tVirtual Method code offset == 0\n", i, j);
+                    //std::printf("[%d][%d]\tVirtual Method code offset == 0\n", i, j);
                     continue;
                 }
                 char* codeptr = apk_parser.class_data_list[i].class_data.virtualmethods_list[j].code.insns;
                 uint32_t codeSize = apk_parser.class_data_list[i].class_data.virtualmethods_list[j].code.insns_size * 2;
                 if (codeSize == 0) {
-                    //printf("[%d][%d]\tVirtual Method  code size == 0\n", i, j);
+                    //std::printf("[%d][%d]\tVirtual Method  code size == 0\n", i, j);
                     continue;
                 }
                 char* class_name = apk_parser.get_classname_by_id(i);
@@ -1454,10 +1325,10 @@ void printOpSimiValue(parser apk_parser, char* opBitSize)
 
                 }
                 char* methodName = apk_parser.get_string_by_id(apk_parser.get_method_by_id(methodNameId).name_idx);
-                printf("\n[V][%d][%d]\tSymbol: %s -> %s\n", i, j, class_name, methodName);
-                if (i == 134 && j == 15)
+                std::printf("\n[V][%d][%d]\tSymbol: %s -> %s\n", i, j, class_name, methodName);
+                if (i == 2 && j == 3)
                 {
-                    printf("ERROR\n");
+                    std::printf("ERROR\n");
                 }
                 vector<oneOpcode> opcodeAndStr = func_30B((uint16_t*)codeptr, codeSize, apk_parser);
                 char* onlyCodePtr = (char*)malloc(opcodeAndStr.size());
@@ -1474,10 +1345,12 @@ void printOpSimiValue(parser apk_parser, char* opBitSize)
             }
         }
         else {
-            printf("[%d]\t 0 Methods\n", i);
+            std::printf("[%d]\t 0 Methods\n", i);
         }
     }
 }
+
+
 
 
 
@@ -1485,67 +1358,9 @@ int main()
 {
 	
 	
-	//const char* fp = "d:\\Tools\\Company\\OWL-Android\\samples\\classes.dex";
-    const char* fp = "d:\\Android\\sample\\classes.dex";
+	const char* fp = "d:\\Tools\\Company\\OWL-Android\\samples\\classes.dex";
+    //const char* fp = "d:\\Android\\sample\\classes.dex";
     parser apk_parser(fp);
-
-    uint8_t opcode[] = {
-        0x07, 0x70, 0x38, 0x09, 0x08, 0x00, 0x38, 0x05, 0x06, 0x00, 0x6E, 0x10, 0xE2, 0x06, 0x05, 0x00,
-        0x0C, 0x07, 0x39, 0x0A, 0x04, 0x00, 0x38, 0x0B, 0x06, 0x00, 0x71, 0x40, 0x3D, 0x0F, 0x87, 0xBA,
-        0x0C, 0x07, 0x38, 0x0C, 0x06, 0x00, 0x71, 0x10, 0x8A, 0x1D, 0x07, 0x00, 0x0C, 0x07, 0x12, 0x01,
-        0x12, 0xF2, 0x6E, 0x10, 0x42, 0x3D, 0x06, 0x00, 0x0A, 0x03, 0x2C, 0x03, 0x23, 0x01, 0x00, 0x00,
-        0x29, 0x00, 0x97, 0x00, 0x1A, 0x03, 0xDB, 0x05, 0x6E, 0x20, 0x3D, 0x3D, 0x36, 0x00, 0x0A, 0x03,
-        0x38, 0x03, 0xF8, 0xFF, 0x12, 0x22, 0x29, 0x00, 0x8C, 0x00, 0x1A, 0x03, 0xED, 0x08, 0x6E, 0x20,
-        0x3D, 0x3D, 0x36, 0x00, 0x0A, 0x03, 0x38, 0x03, 0xED, 0xFF, 0x12, 0x32, 0x29, 0x00, 0x81, 0x00,
-        0x1A, 0x03, 0x92, 0x06, 0x6E, 0x20, 0x3D, 0x3D, 0x36, 0x00, 0x0A, 0x03, 0x38, 0x03, 0xE2, 0xFF,
-        0x12, 0x62, 0x29, 0x00, 0x76, 0x00, 0x1A, 0x03, 0xE5, 0x04, 0x6E, 0x20, 0x3D, 0x3D, 0x36, 0x00,
-        0x0A, 0x03, 0x38, 0x03, 0xD7, 0xFF, 0x13, 0x02, 0x09, 0x00, 0x29, 0x00, 0x6A, 0x00, 0x1A, 0x03,
-        0x26, 0x0B, 0x6E, 0x20, 0x3D, 0x3D, 0x36, 0x00, 0x0A, 0x03, 0x38, 0x03, 0xCB, 0xFF, 0x12, 0x12,
-        0x28, 0x5F, 0x1A, 0x03, 0xEB, 0x1B, 0x6E, 0x20, 0x3D, 0x3D, 0x36, 0x00, 0x0A, 0x03, 0x38, 0x03,
-        0xC1, 0xFF, 0x13, 0x02, 0x0D, 0x00, 0x28, 0x54, 0x1A, 0x03, 0x8B, 0x18, 0x6E, 0x20, 0x3D, 0x3D,
-        0x36, 0x00, 0x0A, 0x03, 0x38, 0x03, 0xB6, 0xFF, 0x12, 0x72, 0x28, 0x4A, 0x1A, 0x03, 0x2F, 0x1A,
-        0x6E, 0x20, 0x3D, 0x3D, 0x36, 0x00, 0x0A, 0x03, 0x38, 0x03, 0xAC, 0xFF, 0x12, 0x42, 0x28, 0x40,
-        0x1A, 0x03, 0x01, 0x1A, 0x6E, 0x20, 0x3D, 0x3D, 0x36, 0x00, 0x0A, 0x03, 0x38, 0x03, 0xA2, 0xFF,
-        0x13, 0x02, 0x0C, 0x00, 0x28, 0x35, 0x1A, 0x03, 0x25, 0x0B, 0x6E, 0x20, 0x3D, 0x3D, 0x36, 0x00,
-        0x0A, 0x03, 0x38, 0x03, 0x97, 0xFF, 0x12, 0x52, 0x28, 0x2B, 0x1A, 0x03, 0xA6, 0x1B, 0x6E, 0x20,
-        0x3D, 0x3D, 0x36, 0x00, 0x0A, 0x03, 0x38, 0x03, 0x8D, 0xFF, 0x12, 0x02, 0x28, 0x21, 0x1A, 0x03,
-        0x01, 0x17, 0x6E, 0x20, 0x3D, 0x3D, 0x36, 0x00, 0x0A, 0x03, 0x38, 0x03, 0x83, 0xFF, 0x13, 0x02,
-        0x0A, 0x00, 0x28, 0x16, 0x1A, 0x03, 0x95, 0x06, 0x6E, 0x20, 0x3D, 0x3D, 0x36, 0x00, 0x0A, 0x03,
-        0x38, 0x03, 0x78, 0xFF, 0x13, 0x02, 0x08, 0x00, 0x28, 0x0B, 0x1A, 0x03, 0x8D, 0x18, 0x6E, 0x20,
-        0x3D, 0x3D, 0x36, 0x00, 0x0A, 0x03, 0x38, 0x03, 0x6D, 0xFF, 0x13, 0x02, 0x0B, 0x00, 0x2B, 0x02,
-        0xC3, 0x00, 0x00, 0x00, 0x6E, 0x40, 0x39, 0x0F, 0x74, 0x86, 0x0C, 0x01, 0x29, 0x00, 0x73, 0x00,
-        0x6E, 0x30, 0x38, 0x0F, 0x74, 0x08, 0x0C, 0x01, 0x70, 0x30, 0x3E, 0x0F, 0x14, 0x06, 0x29, 0x00,
-        0x6A, 0x00, 0x6E, 0x30, 0x35, 0x0F, 0x74, 0x08, 0x0C, 0x01, 0x70, 0x30, 0x3E, 0x0F, 0x14, 0x06,
-        0x28, 0x61, 0x6E, 0x30, 0x34, 0x0F, 0x74, 0x08, 0x0C, 0x01, 0x70, 0x30, 0x3E, 0x0F, 0x14, 0x06,
-        0x28, 0x59, 0x6E, 0x30, 0x32, 0x0F, 0x74, 0x08, 0x0C, 0x01, 0x70, 0x30, 0x3E, 0x0F, 0x14, 0x06,
-        0x28, 0x51, 0x6E, 0x30, 0x2B, 0x0F, 0x74, 0x08, 0x0C, 0x01, 0x70, 0x30, 0x3E, 0x0F, 0x14, 0x06,
-        0x28, 0x49, 0x6E, 0x30, 0x2E, 0x0F, 0x74, 0x08, 0x0C, 0x01, 0x70, 0x30, 0x3E, 0x0F, 0x14, 0x06,
-        0x28, 0x41, 0x6E, 0x30, 0x33, 0x0F, 0x74, 0x08, 0x0C, 0x01, 0x70, 0x30, 0x3E, 0x0F, 0x14, 0x06,
-        0x28, 0x39, 0x6E, 0x30, 0x2D, 0x0F, 0x74, 0x08, 0x0C, 0x01, 0x70, 0x30, 0x3E, 0x0F, 0x14, 0x06,
-        0x28, 0x31, 0x6E, 0x30, 0x30, 0x0F, 0x74, 0x08, 0x0C, 0x01, 0x70, 0x30, 0x3E, 0x0F, 0x14, 0x06,
-        0x28, 0x29, 0x6E, 0x30, 0x36, 0x0F, 0x74, 0x08, 0x0C, 0x01, 0x70, 0x30, 0x3E, 0x0F, 0x14, 0x06,
-        0x28, 0x21, 0x6E, 0x30, 0x2F, 0x0F, 0x74, 0x08, 0x0C, 0x01, 0x70, 0x30, 0x3E, 0x0F, 0x14, 0x06,
-        0x28, 0x19, 0x6E, 0x30, 0x2C, 0x0F, 0x74, 0x08, 0x0C, 0x01, 0x70, 0x30, 0x3E, 0x0F, 0x14, 0x06,
-        0x28, 0x11, 0x6E, 0x30, 0x31, 0x0F, 0x74, 0x08, 0x0C, 0x01, 0x70, 0x30, 0x3E, 0x0F, 0x14, 0x06,
-        0x28, 0x09, 0x6E, 0x30, 0x37, 0x0F, 0x74, 0x08, 0x0C, 0x01, 0x70, 0x30, 0x3E, 0x0F, 0x14, 0x06,
-        0x00, 0x00, 0x39, 0x01, 0x08, 0x00, 0x32, 0x70, 0x06, 0x00, 0x70, 0x40, 0x3C, 0x0F, 0x74, 0x86,
-        0x0C, 0x01, 0x38, 0x01, 0x05, 0x00, 0x70, 0x30, 0x2A, 0x0F, 0x14, 0x08, 0x11, 0x01, 0x00, 0x00,
-        0x00, 0x02, 0x0E, 0x00, 0x16, 0x31, 0xFB, 0x8B, 0x19, 0xEA, 0x3F, 0xA9, 0x53, 0x58, 0xC5, 0xAF,
-        0x92, 0xF9, 0x08, 0xC8, 0x4D, 0xB4, 0x1F, 0xC8, 0x5B, 0x9A, 0xBF, 0xD8, 0xF9, 0x49, 0xBF, 0xEB,
-        0xED, 0xA6, 0x46, 0x2E, 0xC6, 0x53, 0xA4, 0x2F, 0x80, 0x52, 0x1B, 0x43, 0xBA, 0xF9, 0x45, 0x54,
-        0xC3, 0x07, 0x75, 0x5F, 0x77, 0x76, 0x57, 0x63, 0x52, 0x13, 0x47, 0x77, 0x90, 0x00, 0x00, 0x00,
-        0x85, 0x00, 0x00, 0x00, 0x7A, 0x00, 0x00, 0x00, 0x70, 0x00, 0x00, 0x00, 0x66, 0x00, 0x00, 0x00,
-        0x5B, 0x00, 0x00, 0x00, 0x51, 0x00, 0x00, 0x00, 0x47, 0x00, 0x00, 0x00, 0x3C, 0x00, 0x00, 0x00,
-        0x32, 0x00, 0x00, 0x00, 0x26, 0x00, 0x00, 0x00, 0x1B, 0x00, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00,
-        0x05, 0x00, 0x00, 0x00, 0x00, 0x01, 0x0E, 0x00, 0x00, 0x00, 0x00, 0x00, 0x72, 0x00, 0x00, 0x00,
-        0x6A, 0x00, 0x00, 0x00, 0x62, 0x00, 0x00, 0x00, 0x5A, 0x00, 0x00, 0x00, 0x52, 0x00, 0x00, 0x00,
-        0x4A, 0x00, 0x00, 0x00, 0x42, 0x00, 0x00, 0x00, 0x3A, 0x00, 0x00, 0x00, 0x32, 0x00, 0x00, 0x00,
-        0x2A, 0x00, 0x00, 0x00, 0x22, 0x00, 0x00, 0x00, 0x1A, 0x00, 0x00, 0x00, 0x12, 0x00, 0x00, 0x00,
-        0x09, 0x00, 0x00, 0x00
-
-    };
-
-    //func_30B((uint16_t*)opcode, 0x334, apk_parser);
 
     //遍历每个类中的每个方法，检索出特定CRC值对应的类方法路径
 
