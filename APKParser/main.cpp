@@ -1,8 +1,8 @@
 #include "parser.h"
-#include <iostream>
 #include "md5.h"
 #include "Crc32.h"
-
+#include <json/json.h>
+#include <fstream>
 
 
 struct oneOpcode
@@ -1242,6 +1242,7 @@ void opstrToSimiValue(vector<oneOpcode> allOpcode, char* opBitSize)
 
 }
 
+
 void printOpSimiValue(parser apk_parser, char* opBitSize)
 {
     //遍历每个类方法的opcode
@@ -1351,15 +1352,128 @@ void printOpSimiValue(parser apk_parser, char* opBitSize)
 }
 
 
+void deleteSubStr(string& str, string& substr)
+{
+    int flag = 0, m = 0;
+    uint32_t subSize = substr.size();
+    while (flag == 0)
+    {
+        m = str.find(substr);
+        if (m < 0)
+        {
+            flag = 1;
+        }
+        else 
+        {
+            str.erase(m, subSize);
+        }
+    }
+}
 
+
+void searchJDataInDex(parser apk_parser)
+{
+    Json::Value root;
+    Json::Reader reader;
+    ifstream  fin;
+
+
+    fin.open("d:\\Android\\sample\\Trojan.Android.GSmsSend.A.json", ios::in);
+    if (!reader.parse(fin, root))
+    {
+        std::printf("Parser Json file Failed.");
+        exit(0);
+    }
+
+    //遍历多模特征的每个数组
+    for (unsigned int i = 0; i < root["scan_method"][0]["pattern"].size(); i++)
+    {
+        float score = 0.0;
+        uint32_t featSize = root["scan_method"][0]["pattern"][i].size();
+        //遍历数组内的每个字符串
+        for (uint32_t j = 0; j < root["scan_method"][0]["pattern"][i].size(); j++)
+        {
+            string s =  root["scan_method"][0]["pattern"][i][j].asString();
+            string c1 = "*";
+            string c2 = "->";
+            deleteSubStr(s, c1);
+            char* sFeaturePtr = (char*)s.c_str();
+            //如果字符串包含“->”，则其类名和方法名都在STRINTG段找到才算这条规则命中。
+            if (strstr(sFeaturePtr, c2.c_str()))
+            {
+                int hit = 0;
+                char* p = strtok(sFeaturePtr, c2.c_str());
+                //遍历DEX STRING段
+                for (size_t k = 0; k < apk_parser.string_list.size(); k++)
+                {
+                    char* cStr = (char*)apk_parser.string_list[k];
+                    if (strlen(cStr) != 0 && strstr(cStr, p))
+                    {
+                        hit++;
+                        break;
+                    }
+                }
+                p = strtok(NULL, c2.c_str());
+                if (p)
+                {
+                    //遍历DEX STRING段
+                    for (size_t k = 0; k < apk_parser.string_list.size(); k++)
+                    {
+                        char* cStr = (char*)apk_parser.string_list[k];
+                        if (strlen(cStr) != 0 && strstr(cStr, p))
+                        {
+                            hit++;
+                            break;
+                        }
+                    }
+                }
+                else
+                {
+                    hit++;
+                }
+                
+                if (hit == 2)
+                {
+                    score++;
+                }
+            }
+            else
+            {
+                //遍历DEX STRING段
+                for (size_t k = 0; k < apk_parser.string_list.size(); k++)
+                {
+                    char* cStr = (char*)apk_parser.string_list[k];
+                    if (strlen(cStr) != 0 && strstr(cStr, sFeaturePtr))
+                    {
+                        score++;
+                        break;
+                    }
+                }
+            }
+            
+            if (score / featSize >= 0.575)
+            {
+                std::printf("Found it\t->\t%s\n", s.c_str());
+                exit(0);
+            }
+            
+        }
+
+        
+        
+    }
+
+
+    fin.close();
+}
 
 
 int main()
 {
 	
 	
-	const char* fp = "d:\\Tools\\Company\\OWL-Android\\samples\\classes.dex";
-    //const char* fp = "d:\\Android\\sample\\classes.dex";
+	//const char* fp = "d:\\Tools\\Company\\OWL-Android\\samples\\classes.dex";
+    const char* fp = "d:\\Android\\sample\\classes.dex";
     parser apk_parser(fp);
 
     //遍历每个类中的每个方法，检索出特定CRC值对应的类方法路径
@@ -1370,7 +1484,8 @@ int main()
 
     char opBitSize[] = { 0x84, 0x48, 0x8B, 0x32, 0x2C, 0x24, 0xBD, 0xA7, 0xE3, 0x2B, 0x48, 0xA0, 0xB8, 0xFA, 0x0F, 0xFC };
 
-    printOpSimiValue(apk_parser, opBitSize);
+    //printOpSimiValue(apk_parser, opBitSize);
 
+    searchJDataInDex(apk_parser);
 	return 0;
 }
