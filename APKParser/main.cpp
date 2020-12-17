@@ -3,6 +3,7 @@
 #include "Crc32.h"
 #include <json/json.h>
 #include <fstream>
+#include <json/json.h>
 
 
 struct oneOpcode
@@ -13,12 +14,16 @@ struct oneOpcode
 
 uint32_t featureBlckLen = 0;
 vector<uint8_t> ops;
+uint32_t scanMethodSize = 0;
+
 
 vector<oneOpcode> func_30B(uint16_t* a1, int a2, parser dex_parser)
 {
 
     ops.clear();
     featureBlckLen = 0;
+    uint32_t str_size = 0;
+    uint32_t opcodeMD5Size = 0;
     //a1: 指令码指针。
     //a2: 指令码长度
     __int64(__fastcall * v6)(__int16*, __int64); // [rsp+8h] [rbp-F8h]
@@ -38,7 +43,6 @@ vector<oneOpcode> func_30B(uint16_t* a1, int a2, parser dex_parser)
     v7 = a1;        
     v9 = 0;
     uint32_t opcode_number = 0;
-    uint32_t str_size = 0;
     
     //一个类方法中堆块4的数量，有类方法中独立块MD5计算引用
     uint32_t heap4Size = 0;
@@ -855,9 +859,11 @@ LABEL_228:
         }
         std::printf("%x ", only_op[i]);
     };
-
+    opcodeMD5Size = str_size + 3 * opcode_number;
     std::printf("\n[*]字符串总长度: 0x%x\n\n", str_size);
-    std::printf("[*] Opcode MD5:  opcode feature number(字符串总长度 + 3 * 方法中提取的opcode数量) = 0x%x\n\n", str_size + 3*opcode_number);
+    std::printf("[*] Opcode MD5:  opcode feature number(字符串总长度 + 3 * 方法中提取的opcode数量) = 0x%x\n\n", opcodeMD5Size);
+    
+
 
     featureBlckLen = 2 * string_number + str_size + opcode_number;
     std::printf("[*] Opcode Similarity feature number(字符串总长度 + 2*字符串条数 + 提取的操作码数量) = 0x%x\n\n", featureBlckLen);
@@ -1149,6 +1155,7 @@ void opstrToSimiValue(vector<oneOpcode> allOpcode, char* opBitSize)
         }
     }
 
+    scanMethodSize++;
     std::printf("\nOpcode and String's bit size of Method is:\t");
     for (size_t i = 0; i < 16; i++)
     {
@@ -1158,8 +1165,8 @@ void opstrToSimiValue(vector<oneOpcode> allOpcode, char* opBitSize)
 
     if (!strncmp(opBitSize, (char*)a2, 16))
     {
-        std::printf("Found it\n");
-        exit(0);
+        std::printf("Scan total %d methods then ,found it\n", scanMethodSize);
+        //exit(0);
     }
 
     //安天特征,可以在 func_537 中下断点，获取相似特征。
@@ -1279,7 +1286,7 @@ void printOpSimiValue(parser apk_parser, char* opBitSize)
 
                 }
                 char* methodName = apk_parser.get_string_by_id(apk_parser.get_method_by_id(methodNameId).name_idx);
-                std::printf("\n[D][%d][%d]\tSymbol: %s -> %s\n", i, j, class_name, methodName);
+                std::printf("\n[D][%d][%d]\tSymbol: %s -> %s\n[opcodeSize=0x%x]\n", i, j, class_name, methodName, codeSize);
 
                 if (!strcmp(class_name, "Lcom/atxkj/sdm/a/c;"))
                 {
@@ -1287,10 +1294,11 @@ void printOpSimiValue(parser apk_parser, char* opBitSize)
                 }
 
                 vector<oneOpcode> opcodeAndStr = func_30B((uint16_t*)codeptr, codeSize, apk_parser);
-                if (opcodeAndStr.size() <24)
+                if (codeSize <0x17)
                 {
                     continue;
                 }
+
                 /*char* onlyCodePtr = (char*)malloc(opcodeAndStr.size());
                 for (size_t codeId = 0; codeId < opcodeAndStr.size(); codeId++)
                 {
@@ -1326,14 +1334,14 @@ void printOpSimiValue(parser apk_parser, char* opBitSize)
 
                 }
                 char* methodName = apk_parser.get_string_by_id(apk_parser.get_method_by_id(methodNameId).name_idx);
-                std::printf("\n[V][%d][%d]\tSymbol: %s -> %s\n", i, j, class_name, methodName);
+                std::printf("\n[V][%d][%d]\tSymbol: %s -> %s\n[opcodeSize=0x%x]\n", i, j, class_name, methodName, codeSize);
                 if (i == 2 && j == 3)
                 {
                     std::printf("ERROR\n");
                 }
                 vector<oneOpcode> opcodeAndStr = func_30B((uint16_t*)codeptr, codeSize, apk_parser);
                 char* onlyCodePtr = (char*)malloc(opcodeAndStr.size());
-                if (opcodeAndStr.size() < 24)
+                if (codeSize < 0x17)
                 {
                     continue;
                 }
@@ -1378,7 +1386,7 @@ void searchJDataInDex(parser apk_parser)
     ifstream  fin;
 
 
-    fin.open("d:\\Android\\sample\\Trojan.Android.GSmsSend.A.json", ios::in);
+    fin.open("d:\\Tools\\Company\\\OWL-Android\\\samples\\Trojan.Android.GSmsSend.A.json", ios::in);
     if (!reader.parse(fin, root))
     {
         std::printf("Parser Json file Failed.");
@@ -1472,8 +1480,8 @@ int main()
 {
 	
 	
-	//const char* fp = "d:\\Tools\\Company\\OWL-Android\\samples\\classes.dex";
-    const char* fp = "d:\\Android\\sample\\classes.dex";
+	const char* fp = "d:\\Tools\\Company\\OWL-Android\\samples\\classes.dex";
+    //const char* fp = "d:\\Android\\sample\\classes.dex";
     parser apk_parser(fp);
 
     //遍历每个类中的每个方法，检索出特定CRC值对应的类方法路径
@@ -1482,10 +1490,12 @@ int main()
     std::string md5v = "4D5EE4C6A8E34004FED6B291736B5F2B";
     //printSymbolByCrcMD5(apk_parser, crcvalue, md5v);
 
-    char opBitSize[] = { 0x84, 0x48, 0x8B, 0x32, 0x2C, 0x24, 0xBD, 0xA7, 0xE3, 0x2B, 0x48, 0xA0, 0xB8, 0xFA, 0x0F, 0xFC };
+    char opBitSize[] = { 0x1D, 0x5A, 0x02, 0x66, 0xB1, 0xDE, 0x07, 0x64, 0xB0, 0xC7, 0x2B, 0x2B, 0xEE, 0xD9, 0xA1, 0x55 };
 
-    //printOpSimiValue(apk_parser, opBitSize);
+    printOpSimiValue(apk_parser, opBitSize);
 
-    searchJDataInDex(apk_parser);
-	return 0;
+    //searchJDataInDex(apk_parser);
+    std::printf("\n total scan %d methods\n", scanMethodSize);
+
+    return 0;
 }
