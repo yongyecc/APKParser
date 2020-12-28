@@ -1166,7 +1166,7 @@ void opstrToSimiValue(vector<oneOpcode> allOpcode, char* opBitSize)
     if (!strncmp(opBitSize, (char*)a2, 16))
     {
         std::printf("Scan total %d methods then ,found it\n", scanMethodSize);
-        //exit(0);
+        exit(0);
     }
 
     //安天特征,可以在 func_537 中下断点，获取相似特征。
@@ -1243,7 +1243,7 @@ void opstrToSimiValue(vector<oneOpcode> allOpcode, char* opBitSize)
     if (simiValue == 9)
     {
         std::printf("similar value is 9\n");
-        exit(0);
+        //exit(0);
     }
 
 
@@ -1476,6 +1476,43 @@ void searchJDataInDex(parser apk_parser)
 }
 
 
+void makeCharTree(std::vector<uint8_t*> stringList)
+{
+
+    char* heap4 = (char*)calloc(0x28, 1);
+
+
+    struct cNode
+    {
+        uint64_t oneChar;
+        uint64_t strPtr;
+        uint64_t preCharNode;
+        uint64_t smallCharNode;
+        uint64_t nextCharNode;
+        uint64_t bigCharNode;
+        uint64_t stringIndex;
+
+    };
+
+    for (size_t i = 0; i < stringList.size(); i++)
+    {
+        uint64_t* sPtr = (uint64_t*)stringList[i];
+        int sSize = strlen((char*)sPtr);
+        uint64_t* nodePtr = NULL;
+        
+        if (!*(uint64_t*)(heap4+0x10))
+        {
+            memcpy(heap4 + 0x10, &sPtr, 8);
+        }
+
+        if (!nodePtr)
+        {
+
+        }
+
+    }
+}
+
 int main()
 {
 	
@@ -1490,12 +1527,11 @@ int main()
     std::string md5v = "4D5EE4C6A8E34004FED6B291736B5F2B";
     //printSymbolByCrcMD5(apk_parser, crcvalue, md5v);
 
-    char opBitSize[] = { 0x1D, 0x5A, 0x02, 0x66, 0xB1, 0xDE, 0x07, 0x64, 0xB0, 0xC7, 0x2B, 0x2B, 0xEE, 0xD9, 0xA1, 0x55 };
-
+    /*char opBitSize[] = { 0x1D, 0x5A, 0x02, 0x66, 0xB1, 0xDE, 0x07, 0x64, 0xB0, 0xC7, 0x2B, 0x2B, 0xEE, 0xD9, 0xA1, 0x55 };
     printOpSimiValue(apk_parser, opBitSize);
+    std::printf("\n total scan %d methods\n", scanMethodSize);*/
 
-    //searchJDataInDex(apk_parser);
-    std::printf("\n total scan %d methods\n", scanMethodSize);
+    makeCharTree(apk_parser.string_list);
 
     return 0;
 }
