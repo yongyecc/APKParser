@@ -1,10 +1,25 @@
-#include "parser.h"
+ï»¿#include "parser.h"
 #include "md5.h"
 #include "Crc32.h"
 #include <json/json.h>
 #include <fstream>
 #include <json/json.h>
 
+
+struct cListTable
+{
+    uint8_t oneChar;
+    char unkonow[7];
+    char* strPtr;
+    cListTable* preCharNode;
+    cListTable* smallCharNode;
+    cListTable* nextCharNdoe;
+    cListTable* bigCharNode;
+};
+
+
+
+uint64_t* func_503(int64_t a1, uint64_t* a2, uint8_t* a3, uint32_t a4, int64_t a5);
 
 struct oneOpcode
 {
@@ -24,8 +39,8 @@ vector<oneOpcode> func_30B(uint16_t* a1, int a2, parser dex_parser)
     featureBlckLen = 0;
     uint32_t str_size = 0;
     uint32_t opcodeMD5Size = 0;
-    //a1: Ö¸ÁîÂëÖ¸Õë¡£
-    //a2: Ö¸ÁîÂë³¤¶È
+    //a1: æŒ‡ä»¤ç æŒ‡é’ˆã€‚
+    //a2: æŒ‡ä»¤ç é•¿åº¦
     __int64(__fastcall * v6)(__int16*, __int64); // [rsp+8h] [rbp-F8h]
     uint16_t* v7; // [rsp+30h] [rbp-D0h]
     __int16 v8; // [rsp+4Ah] [rbp-B6h]
@@ -44,7 +59,7 @@ vector<oneOpcode> func_30B(uint16_t* a1, int a2, parser dex_parser)
     v9 = 0;
     uint32_t opcode_number = 0;
     
-    //Ò»¸öÀà·½·¨ÖĞ¶Ñ¿é4µÄÊıÁ¿£¬ÓĞÀà·½·¨ÖĞ¶ÀÁ¢¿éMD5¼ÆËãÒıÓÃ
+    //ä¸€ä¸ªç±»æ–¹æ³•ä¸­å †å—4çš„æ•°é‡ï¼Œæœ‰ç±»æ–¹æ³•ä¸­ç‹¬ç«‹å—MD5è®¡ç®—å¼•ç”¨
     uint32_t heap4Size = 0;
 
 LABEL_228:
@@ -132,7 +147,7 @@ LABEL_228:
         }
         allOpcode.push_back(oneOP);
         
-        if ((v5 == 0x300 || v5 == 0x200 || v5 == 0x100) && v9)// 0x300£ºÊı×é
+        if ((v5 == 0x300 || v5 == 0x200 || v5 == 0x100) && v9)// 0x300ï¼šæ•°ç»„
         {
             v7 += (unsigned int)v9;
         }
@@ -842,8 +857,8 @@ LABEL_228:
         
     }
 
-    //´òÓ¡´ÓÀà·½·¨ÖĞÌáÈ¡µÄÌØÕ÷Âë
-    std::printf("\n[*]Àà·½·¨ÖĞÌáÈ¡µÄ²Ù×÷ÂëÊıÁ¿: 0x%x\n\n", opcode_number);
+    //æ‰“å°ä»ç±»æ–¹æ³•ä¸­æå–çš„ç‰¹å¾ç 
+    std::printf("\n[*]ç±»æ–¹æ³•ä¸­æå–çš„æ“ä½œç æ•°é‡: 0x%x\n\n", opcode_number);
     for (size_t i = 0; i < opcode_number; i++)
     {
         if (i != 0 && i % 16 == 0)
@@ -860,13 +875,13 @@ LABEL_228:
         std::printf("%x ", only_op[i]);
     };
     opcodeMD5Size = str_size + 3 * opcode_number;
-    std::printf("\n[*]×Ö·û´®×Ü³¤¶È: 0x%x\n\n", str_size);
-    std::printf("[*] Opcode MD5:  opcode feature number(×Ö·û´®×Ü³¤¶È + 3 * ·½·¨ÖĞÌáÈ¡µÄopcodeÊıÁ¿) = 0x%x\n\n", opcodeMD5Size);
+    std::printf("\n[*]å­—ç¬¦ä¸²æ€»é•¿åº¦: 0x%x\n\n", str_size);
+    std::printf("[*] Opcode MD5:  opcode feature number(å­—ç¬¦ä¸²æ€»é•¿åº¦ + 3 * æ–¹æ³•ä¸­æå–çš„opcodeæ•°é‡) = 0x%x\n\n", opcodeMD5Size);
     
 
 
     featureBlckLen = 2 * string_number + str_size + opcode_number;
-    std::printf("[*] Opcode Similarity feature number(×Ö·û´®×Ü³¤¶È + 2*×Ö·û´®ÌõÊı + ÌáÈ¡µÄ²Ù×÷ÂëÊıÁ¿) = 0x%x\n\n", featureBlckLen);
+    std::printf("[*] Opcode Similarity feature number(å­—ç¬¦ä¸²æ€»é•¿åº¦ + 2*å­—ç¬¦ä¸²æ¡æ•° + æå–çš„æ“ä½œç æ•°é‡) = 0x%x\n\n", featureBlckLen);
     for (size_t i = 0; i < (2*string_number + str_size + opcode_number); i++)
     {
         if (i != 0 && i % 16 == 0)
@@ -1034,14 +1049,14 @@ LABEL_228:
 
 
 /// <summary>
-/// ±éÀúÃ¿¸öÀà·½·¨ÌáÈ¡opcde£¬ÒÔ¼°¶ÔÓ¦×Ö·û´®¹¹³ÉµÄÌØÕ÷¿é£¬»ñÈ¡MD5ÁĞ±í£¬½«MD5ÁĞ±í×ª³ÉÒ»¸ö16×Ö½ÚµÄÖµ£¬ºÍ²ÎÊı±È¶ÔÕÒµ½ÃüÖĞ²ÎÊı"opBitSize"µÄÀà·½·¨·ûºÅ¡£
+/// éå†æ¯ä¸ªç±»æ–¹æ³•æå–opcdeï¼Œä»¥åŠå¯¹åº”å­—ç¬¦ä¸²æ„æˆçš„ç‰¹å¾å—ï¼Œè·å–MD5åˆ—è¡¨ï¼Œå°†MD5åˆ—è¡¨è½¬æˆä¸€ä¸ª16å­—èŠ‚çš„å€¼ï¼Œå’Œå‚æ•°æ¯”å¯¹æ‰¾åˆ°å‘½ä¸­å‚æ•°"opBitSize"çš„ç±»æ–¹æ³•ç¬¦å·ã€‚
 /// </summary>
-/// <param name="allOpcode">Àà·½·¨µÄopcode½á¹¹ÌåÁĞ±í£¬°üº¬opcode¡¢×Ö·û´®µØÖ·(Èç¹û´æÔÚ)</param>
-/// <param name="opBitSize">°²Ìì¼ì³ö²¡¶¾µÄHASHÖµ¡£</param>
+/// <param name="allOpcode">ç±»æ–¹æ³•çš„opcodeç»“æ„ä½“åˆ—è¡¨ï¼ŒåŒ…å«opcodeã€å­—ç¬¦ä¸²åœ°å€(å¦‚æœå­˜åœ¨)</param>
+/// <param name="opBitSize">å®‰å¤©æ£€å‡ºç—…æ¯’çš„HASHå€¼ã€‚</param>
 void opstrToSimiValue(vector<oneOpcode> allOpcode, char* opBitSize)
 {
-    //opcode+str ×ª³É MD5ÁĞ±í
-    //func_440 ½âÎö×Ö½ÚÂë£¬¹¹Ôìopcode+strµÄÌØÕ÷¿é
+    //opcode+str è½¬æˆ MD5åˆ—è¡¨
+    //func_440 è§£æå­—èŠ‚ç ï¼Œæ„é€ opcode+strçš„ç‰¹å¾å—
     char* featureBlckPtr = (char*)malloc(featureBlckLen);
     for (size_t i = 0; i < featureBlckLen; i++)
     {
@@ -1117,7 +1132,7 @@ void opstrToSimiValue(vector<oneOpcode> allOpcode, char* opBitSize)
         std::printf("%s\n", md5Obj.hexdigest().c_str());
     }
 
-    //È¡MD5ÁĞ±íÖĞÃ¿¸öMD5ÖµÈ¡Ã¿Î»0ºÍ1ÊıÁ¿µÃµ½Ò»¸ö128Î»³¤¶ÈµÃÖµºÍ²¡¶¾¿âÌØÕ÷ÖĞµÃ128Î»Öµ½øĞĞÏàËÆĞÔ¼ÆËã
+    //å–MD5åˆ—è¡¨ä¸­æ¯ä¸ªMD5å€¼å–æ¯ä½0å’Œ1æ•°é‡å¾—åˆ°ä¸€ä¸ª128ä½é•¿åº¦å¾—å€¼å’Œç—…æ¯’åº“ç‰¹å¾ä¸­å¾—128ä½å€¼è¿›è¡Œç›¸ä¼¼æ€§è®¡ç®—
     char* a2 = (char*)malloc(16);
     memset(a2, 0, 16);
     uint8_t v14 = 0;
@@ -1169,7 +1184,7 @@ void opstrToSimiValue(vector<oneOpcode> allOpcode, char* opBitSize)
         exit(0);
     }
 
-    //°²ÌìÌØÕ÷,¿ÉÒÔÔÚ func_537 ÖĞÏÂ¶Ïµã£¬»ñÈ¡ÏàËÆÌØÕ÷¡£
+    //å®‰å¤©ç‰¹å¾,å¯ä»¥åœ¨ func_537 ä¸­ä¸‹æ–­ç‚¹ï¼Œè·å–ç›¸ä¼¼ç‰¹å¾ã€‚
     char virus_feature[] = { 0x95, 0x48, 0x9b, 0x33, 0x2c, 0x24, 0xbd, 0xa7, 0xe3, 0x89, 0x08, 0xa0, 0xb8, 0xfa, 0x0f, 0xdc };
     uint32_t* a1 = (uint32_t*)virus_feature;
 
@@ -1252,7 +1267,7 @@ void opstrToSimiValue(vector<oneOpcode> allOpcode, char* opBitSize)
 
 void printOpSimiValue(parser apk_parser, char* opBitSize)
 {
-    //±éÀúÃ¿¸öÀà·½·¨µÄopcode
+    //éå†æ¯ä¸ªç±»æ–¹æ³•çš„opcode
     uint32_t class_size = apk_parser.class_data_list.size();
     for (size_t i = 0; i < class_size; i++)
     {
@@ -1393,12 +1408,12 @@ void searchJDataInDex(parser apk_parser)
         exit(0);
     }
 
-    //±éÀú¶àÄ£ÌØÕ÷µÄÃ¿¸öÊı×é
+    //éå†å¤šæ¨¡ç‰¹å¾çš„æ¯ä¸ªæ•°ç»„
     for (unsigned int i = 0; i < root["scan_method"][0]["pattern"].size(); i++)
     {
         float score = 0.0;
         uint32_t featSize = root["scan_method"][0]["pattern"][i].size();
-        //±éÀúÊı×éÄÚµÄÃ¿¸ö×Ö·û´®
+        //éå†æ•°ç»„å†…çš„æ¯ä¸ªå­—ç¬¦ä¸²
         for (uint32_t j = 0; j < root["scan_method"][0]["pattern"][i].size(); j++)
         {
             string s =  root["scan_method"][0]["pattern"][i][j].asString();
@@ -1406,12 +1421,12 @@ void searchJDataInDex(parser apk_parser)
             string c2 = "->";
             deleteSubStr(s, c1);
             char* sFeaturePtr = (char*)s.c_str();
-            //Èç¹û×Ö·û´®°üº¬¡°->¡±£¬ÔòÆäÀàÃûºÍ·½·¨Ãû¶¼ÔÚSTRINTG¶ÎÕÒµ½²ÅËãÕâÌõ¹æÔòÃüÖĞ¡£
+            //å¦‚æœå­—ç¬¦ä¸²åŒ…å«â€œ->â€ï¼Œåˆ™å…¶ç±»åå’Œæ–¹æ³•åéƒ½åœ¨STRINTGæ®µæ‰¾åˆ°æ‰ç®—è¿™æ¡è§„åˆ™å‘½ä¸­ã€‚
             if (strstr(sFeaturePtr, c2.c_str()))
             {
                 int hit = 0;
                 char* p = strtok(sFeaturePtr, c2.c_str());
-                //±éÀúDEX STRING¶Î
+                //éå†DEX STRINGæ®µ
                 for (size_t k = 0; k < apk_parser.string_list.size(); k++)
                 {
                     char* cStr = (char*)apk_parser.string_list[k];
@@ -1424,7 +1439,7 @@ void searchJDataInDex(parser apk_parser)
                 p = strtok(NULL, c2.c_str());
                 if (p)
                 {
-                    //±éÀúDEX STRING¶Î
+                    //éå†DEX STRINGæ®µ
                     for (size_t k = 0; k < apk_parser.string_list.size(); k++)
                     {
                         char* cStr = (char*)apk_parser.string_list[k];
@@ -1447,7 +1462,7 @@ void searchJDataInDex(parser apk_parser)
             }
             else
             {
-                //±éÀúDEX STRING¶Î
+                //éå†DEX STRINGæ®µ
                 for (size_t k = 0; k < apk_parser.string_list.size(); k++)
                 {
                     char* cStr = (char*)apk_parser.string_list[k];
@@ -1476,42 +1491,152 @@ void searchJDataInDex(parser apk_parser)
 }
 
 
-void makeCharTree(std::vector<uint8_t*> stringList)
+uint64_t makeCharTree(std::vector<uint8_t*> stringList)
 {
 
     char* heap4 = (char*)calloc(0x28, 1);
 
-
-    struct cNode
-    {
-        uint64_t oneChar;
-        uint64_t strPtr;
-        uint64_t preCharNode;
-        uint64_t smallCharNode;
-        uint64_t nextCharNode;
-        uint64_t bigCharNode;
-        uint64_t stringIndex;
-
-    };
-
+    uint32_t* blk = (uint32_t*)calloc(0x10, 1);
+    blk[2] = 'a';
+    uint64_t* charListTable = NULL;
     for (size_t i = 0; i < stringList.size(); i++)
     {
         uint64_t* sPtr = (uint64_t*)stringList[i];
         int sSize = strlen((char*)sPtr);
-        uint64_t* nodePtr = NULL;
-        
-        if (!*(uint64_t*)(heap4+0x10))
+        //void* bigBlk = calloc(8 * 0xff, 1);
+        //std::printf("[%d] %s\n", i, sPtr);
+        if (i==46483)
         {
-            memcpy(heap4 + 0x10, &sPtr, 8);
+            std::printf("");
         }
+        if (sSize)
+        {
+            *(uint64_t*)blk = (uint64_t)func_503((uint64_t)heap4, *(uint64_t**)blk, (uint8_t*)sPtr, sSize, NULL);
+            blk[3]++;
+        }   
+    }
+    uint64_t listTable = *(uint64_t*)blk;
+    return listTable;
+}
 
+uint64_t* func_503(int64_t a1, uint64_t* a2, uint8_t* a3, uint32_t a4, int64_t a5)
+{
+
+    uint64_t* nodePtr = a2;
+    char* sPtr = (char*)a3;
+    uint32_t sSize = a4;
+    int64_t v7 = a5;
+    int64_t v11;
+
+
+    if (*(uint64_t*)(a1+0x10))
+    {
+        *(uint64_t*)(a1 + 0x10) = (uint64_t)a3;
+    }
+
+    if (!a2)
+    {
+
+        nodePtr = (uint64_t*)malloc(0x38);
         if (!nodePtr)
         {
-
+            printf("ERROR malloc(0x38), %p\n", nodePtr);
+            exit(0);
         }
+        *(uint8_t*)nodePtr = *sPtr;
+        nodePtr[5] = 0LL;
+        nodePtr[4] = nodePtr[5];
+        nodePtr[3] = nodePtr[4];
+        nodePtr[1] = 0LL;
+        nodePtr[2] = *(uint64_t*)(a1 + 0x20);
+        if (*(uint64_t*)(a1 + 0x20))
+        {
+            *((uint32_t*)nodePtr + 0xC) = *(uint32_t*)(*(uint64_t*)(a1 + 0x20) + 0x30LL) + 1;
+        }
+        else
+        {
+            *((uint32_t*)nodePtr + 0xC) = 0;
+        }
+        if (v7)
+        {
+            if (!*(uint64_t*)(v7 + 8LL * (unsigned __int8)*sPtr))
+            {
 
+            }
+        }
     }
+
+    if (*(uint8_t*)sPtr >= *(uint8_t*)nodePtr)
+    //if(!strncmp(sPtr, (char*)nodePtr, 1))
+    {
+        if (*(uint8_t*)sPtr <= *(uint8_t*)nodePtr)
+        {
+            if (sSize == 1)
+            {
+                v11 = *(uint64_t*)(a1+0x10);
+                if (!v11)
+                    return nodePtr;
+                nodePtr[1] = v11;
+            }
+            else
+            {
+                *(uint64_t*)(a1 + 0x20) = (uint64_t)nodePtr;
+                nodePtr[4] = (uint64_t)func_503(a1, (uint64_t*)nodePtr[4], (uint8_t*)(sPtr + 1), sSize- 1, v7);
+            }
+        }
+        else
+        {
+            *(uint64_t*)(a1 + 0x20) = (uint64_t)nodePtr;
+            nodePtr[5] = (uint64_t)func_503(a1, (uint64_t*)nodePtr[5], (uint8_t*)sPtr, sSize, v7);
+        }
+    }
+    else
+    {
+        *(uint64_t*)(a1 + 0x20) = (uint64_t)nodePtr;
+        nodePtr[3] = (uint64_t)func_503(a1, (uint64_t*)nodePtr[3], (uint8_t*)sPtr, sSize, v7);
+    }
+    if (*(uint64_t*)(a1+0x10))
+    {
+        *(uint64_t*)(a1 + 0x10) = 0;
+    }
+    return nodePtr;
 }
+
+/// <summary>
+/// è¿­ä»£æœç´¢ã€‚æœç´¢DEX StringèŠ‚åŒºæ„å»ºçš„å­—ç¬¦é“¾è¡¨tableï¼Œæ˜¯å¦å¯ä»¥æ‰¾åˆ°str
+/// </summary>
+/// <param name="table"></param>
+/// <param name="str"></param>
+bool searchListTable(cListTable* table, char* oneCharInStr, uint32_t strLength)
+{
+    if (!table && strLength>0)
+    {
+        return false;
+    }
+    if (table->oneChar >= (uint8_t)*oneCharInStr)
+    {
+        if (table->oneChar <= (uint8_t)*oneCharInStr)
+        {
+            if (strLength == 1)
+            {
+                return true;
+            }
+            searchListTable(table->nextCharNdoe, oneCharInStr + 1, strLength - 1);
+        }
+        else
+        {
+            searchListTable(table->smallCharNode, oneCharInStr, strLength);
+        }
+    }
+    else
+    {
+        searchListTable(table->bigCharNode, oneCharInStr, strLength);
+    }
+
+       
+    
+}
+
 
 int main()
 {
@@ -1520,8 +1645,8 @@ int main()
 	const char* fp = "d:\\Tools\\Company\\OWL-Android\\samples\\classes.dex";
     //const char* fp = "d:\\Android\\sample\\classes.dex";
     parser apk_parser(fp);
-
-    //±éÀúÃ¿¸öÀàÖĞµÄÃ¿¸ö·½·¨£¬¼ìË÷³öÌØ¶¨CRCÖµ¶ÔÓ¦µÄÀà·½·¨Â·¾¶
+    vector<uint8_t*> strList = apk_parser.string_list;
+    //éå†æ¯ä¸ªç±»ä¸­çš„æ¯ä¸ªæ–¹æ³•ï¼Œæ£€ç´¢å‡ºç‰¹å®šCRCå€¼å¯¹åº”çš„ç±»æ–¹æ³•è·¯å¾„
 
     uint32_t crcvalue = 0xD579505A;
     std::string md5v = "4D5EE4C6A8E34004FED6B291736B5F2B";
@@ -1529,9 +1654,33 @@ int main()
 
     /*char opBitSize[] = { 0x1D, 0x5A, 0x02, 0x66, 0xB1, 0xDE, 0x07, 0x64, 0xB0, 0xC7, 0x2B, 0x2B, 0xEE, 0xD9, 0xA1, 0x55 };
     printOpSimiValue(apk_parser, opBitSize);
-    std::printf("\n total scan %d methods\n", scanMethodSize);*/
+    std::printf("\n total scan %d methods\n", scanMethodSize);*/    
 
-    makeCharTree(apk_parser.string_list);
 
+    const char* s = "\xef\xbc\x9a\x00";
+
+    time_t t1 = clock();
+
+    cListTable* table = (cListTable*)makeCharTree(apk_parser.string_list);
+
+    time_t t2 = clock();
+    std::printf("make table: %f\n", difftime(t2, t1) / 1000);
+
+    
+    for (size_t i = 0; i < apk_parser.string_list.size(); i++)
+    {
+        char*str = (char*)strList[i];
+        if (!strcmp(str, s))
+        {
+            printf("[%d]found it\n", i);;
+        }
+    }
+     std::printf("Travel String Section: %f\n", difftime(clock(), t2) / 1000);
+     time_t t3 = clock();
+     
+     searchListTable(table, (char*)s, strlen(s));
+     time_t t4 = clock();
+     std::printf("Travel String Section: %f\n", difftime(t4, t3) / 1000);
+    
     return 0;
 }
